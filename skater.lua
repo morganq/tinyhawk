@@ -12,11 +12,11 @@ function make_skater()
         current_qp = nil,
         floor_normal = {0,1,0},
         draw = function(self)
-            local skate_fwd = v_norm({self.sk_facing[1], mid(self.vel[2] * 2, -3.9, 3.9), self.sk_facing[3]})
+            local skate_fwd = self.fwd--v_norm({self.sk_facing[1], mid(self.vel[2] * 2, -3.9, 3.9), self.sk_facing[3]})
             --pv(skate_fwd)
             for i = -1, 1, 0.125 do
                 local v = v_add(self.pos, v_mul(skate_fwd, i * 0.25))
-                if i == 1 or i == -1 then v[2] += 0.2 end
+                if i == 1 or i == -1 then v[2] += 0.1 end
                 local p = v2p(v)
                 circfill(p[1], p[2] - 1, 1.5, 0)
             end
@@ -38,7 +38,7 @@ function make_skater()
             else
                 self.vel = {0,self.vel[2],0}
             end
-            self.vel[2] -= 0.02
+            --self.vel[2] -= 0.02
 
             local cells = {}
             local next_pos = v_add(self.pos, self.vel)
@@ -54,7 +54,11 @@ function make_skater()
             local planes = prepare_collision_planes(cells)
 
             add(planes, {pt={next_pos[1], 0, next_pos[3]}, normal={0,1,0}, aabb={-100,100,-1,1,-100,100}})
-            self.pos, self.vel = collide_point_planes(self.pos, self.vel, planes)
+            local p1 = v_copy(self.pos)
+            self.pos, self.vel = collide_point_planes(self.pos, v_add(self.vel, {0, -0.02, 0}), planes)
+            --self.pos, _ = collide_point_planes(self.pos, {0,-0.02,0}, planes)
+            self.vel = v_sub(self.pos, p1)
+            --self.vel = v_add(self.vel, gravity_force)            
 
             local cell = get_cell(self.pos)
             if cell and cell.tiletype.is_qp then
@@ -70,11 +74,11 @@ function make_skater()
             end            
 
             --printh("vel len = " .. v_mag(self.vel))
-            --pv(self.vel)
+            pv(self.pos)
             
         end,
         jump = function(self)
-            self.vel = v_add(self.vel, {0, mid(self.jump_charge, 4, 10) / 40, 0})
+            self.vel = v_add(self.vel, {0, mid(self.jump_charge, 4, 10) / 46, 0})
             self.jump_charge = 0
         end,
     }

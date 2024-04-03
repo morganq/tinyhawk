@@ -2,6 +2,20 @@ poke(0x5F2D, 0x1)
 scroll = {0,0}
 debugs = {}
 
+function do_test()
+    local planes = {
+        --{ pt = {-5, 0, 0}, normal = v_norm({1, 1, 0}), aabb = {-10, 10, -10, 10, -10, 10} },
+        --{ pt = {-4, 0, 0}, normal = v_norm({1, 1, 0}), aabb = {-10, 10, -10, 10, -10, 10} },
+        { pt = {-2, 0, -2}, normal = v_norm({1, 0, 0}), aabb = {-10, 10, -10, 10, -10, 10} },
+    }
+    printh("----- TEST 1 ------")
+    local pt, vel = collide_point_planes({0,0,0}, {-10, 0, -10}, planes)
+    printh("RESULT pt")
+    pv(pt)
+    printh("RESULT vel")
+    pv(vel)
+end
+
 function _init()
     for i = 0, 30 do
         local x = ((rnd(2) - 1) * 8) \ 1
@@ -13,13 +27,18 @@ function _init()
     skater = make_skater()
     add(all_entities, skater)
     add(all_entities, skater.shadow)
+
+    do_test()
 end
 
 time = 0
 local mbs = {false, false}
 local editor_elev = 0
-local editor_flip = false
+local editor_fliph = false
+local editor_flipv = false
+local started = true
 function _update()
+
     time += 1
     mx, my, mb = stat(32), stat(33), stat(34)
     mv = p2vi({mx, my})
@@ -28,9 +47,12 @@ function _update()
 		symbol = stat(31)    
     end    
 
-    if symbol == "f" then
-        editor_flip = not editor_flip
+    if symbol == "q" then
+        editor_fliph = not editor_fliph
     end
+    if symbol == "w" then
+        editor_flipv = not editor_flipv
+    end    
 
     if btn(0) then 
         skater:control({1,0,-1})
@@ -52,12 +74,12 @@ function _update()
     end
 
     if (mb & 0b01) != 0 then
-        add_map_tile(mv[1], mv[3], editor_sel, editor_elev, editor_flip)
+        add_map_tile(mv[1], mv[3], editor_sel, editor_elev, editor_fliph, editor_flipv)
     end
     if (mb & 0b10) != 0 and not mbs[2] then
         editor_sel = (editor_sel % 3) + 1
     end
-    editor_elev = max(editor_elev + stat(36), 0)
+    editor_elev = max(editor_elev + stat(36) / 2, 0)
 
     local sp = v2p(skater.pos)
     if abs(sp[1] - 64) > 6 then
@@ -68,6 +90,10 @@ function _update()
     end    
     
 
+    if not started then
+        if btnp(4) then started = true end
+        return
+    end
     skater:update()
     mbs[1] = (mb & 0b01) != 0
     mbs[2] = (mb & 0b10) != 0    
@@ -76,6 +102,9 @@ editor_sel = 1
 
 function _draw()
     cls(7)
+    if not started then
+        return
+    end        
     local pts = {{0,0,0}, {1,0,0}, {1,0,1}, {0,0,1}, {0,0,0}}
     camera(-scroll[1], -scroll[2])
 
@@ -86,7 +115,7 @@ function _draw()
     
     pset(p[1], p[2], 8)
     local t = tiles[editor_sel]
-    isospr(t.sprite, mv, t.height, editor_elev, editor_flip)
+    isospr(t.sprite, mv, t.height, editor_elev, editor_fliph, editor_flipv)
 
     for op in all(debugs) do
         op()

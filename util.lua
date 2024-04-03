@@ -43,7 +43,7 @@ end
 function v2p(v)
     return {
         v[1] * -8 + v[3] * 8 + 64,
-        v[1] * 4 + v[3] * 4 + v[2] * -4 + 64
+        v[1] * 4 + v[3] * 4 + v[2] * -8 + 64
     }
 end
 
@@ -55,9 +55,9 @@ end
 function p2v(p)
     local x, y = p[1] - 64 - scroll[1], p[2] - 64 - scroll[2]
     return {
-       (x / -8 + y / 4) / 2,
+       (x / -8 + y / 8) / 2,
         0,
-       (y / 4 + x / 8) / 2,
+       (y / 8 + x / 8) / 2,
     }
 end
 
@@ -70,3 +70,5 @@ function sort(a,cmp)
         end
     end
 end
+
+function sign(x) return x > 0 and 1 or -1 end
