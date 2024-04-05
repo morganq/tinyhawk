@@ -1,15 +1,15 @@
 poke(0x5F2D, 0x1)
 scroll = {0,0}
 debugs = {}
-
+local started = true
 function do_test()
-    local planes = {
+    local volumes = {
         --{ pt = {-5, 0, 0}, normal = v_norm({1, 1, 0}), aabb = {-10, 10, -10, 10, -10, 10} },
         --{ pt = {-4, 0, 0}, normal = v_norm({1, 1, 0}), aabb = {-10, 10, -10, 10, -10, 10} },
-        { pt = {-2, 0, -2}, normal = v_norm({1, 0, 0}), aabb = {-10, 10, -10, 10, -10, 10} },
+        {{pt = {-2, 0, -2}, normal = v_norm({1, 0, 0})}},
     }
     printh("----- TEST 1 ------")
-    local pt, vel = collide_point_planes({0,0,0}, {-10, 0, -10}, planes)
+    local pt, vel = collide_point_volumes({0,0,0}, {-10, 0, -10}, volumes)
     printh("RESULT pt")
     pv(pt)
     printh("RESULT vel")
@@ -36,7 +36,8 @@ local mbs = {false, false}
 local editor_elev = 0
 local editor_fliph = false
 local editor_flipv = false
-local started = true
+local rotations = {{false, false}, {true, false}, {false, true}, {true, true}}
+local rotation = 0
 function _update()
 
     time += 1
@@ -48,11 +49,10 @@ function _update()
     end    
 
     if symbol == "q" then
-        editor_fliph = not editor_fliph
+        rotation = (rotation + 1) % 4
+        editor_fliph = rotations[rotation + 1][1]
+        editor_flipv = rotations[rotation + 1][2]
     end
-    if symbol == "w" then
-        editor_flipv = not editor_flipv
-    end    
 
     if btn(0) then 
         skater:control({1,0,-1})
@@ -71,6 +71,9 @@ function _update()
     end
     if not btn(5) and skater.jump_charge > 0 then
         skater:jump()
+    end
+    if btnp(4) then
+        skater:trick()
     end
 
     if (mb & 0b01) != 0 then

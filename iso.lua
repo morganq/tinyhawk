@@ -33,9 +33,11 @@ end
 ------
 
 tiles = {
-    {sprite = 2, height = 0.5, planes = block_planes, aabb = block_aabb},
-    {sprite = 6, height = 0.5, planes = ramp_planes, aabb = block_aabb},
-    {sprite = 10, height = 1, planes = qp_planes, aabb = tall_aabb, is_qp = true},
+    {sprite = 2, height = 0.5, volumes = block_volumes, rails = {
+        {{-0.5, 0.5, -0.5}, {-0.5, 0.5, 0.5}}
+    }},
+    {sprite = 6, height = 0.5, volumes = ramp_volumes},
+    {sprite = 10, height = 1, volumes = qp_volumes, is_qp = true},
 }
 
 function make_cell(tile, x, z, elev, fliph, flipv)
@@ -43,6 +45,7 @@ function make_cell(tile, x, z, elev, fliph, flipv)
 end
 
 map = {}
+rails = {}
 
 local rendersize = 24
 
@@ -92,6 +95,10 @@ function add_map_tile(x, z, ind, elev, fliph, flipv)
         e.cell.ent = e
         add(all_entities, e)
         map[x][z] = e.cell 
+        for rail in all(tile.rails) do
+            add(rails, {v_add(rail[1], e.center), v_add(rail[2], e.center)})
+        end
+        
     end
 end
 
@@ -115,6 +122,11 @@ function render_iso_entities(entities)
     for ent in all(all_entities) do
         ent:draw()
     end 
+    for rail in all(rails) do
+        local p1 = v2p(rail[1])
+        local p2 = v2p(rail[2])
+        line(p1[1], p1[2], p2[1], p2[2], 9)
+    end
 end
 
 function debug_tile(v, c)

@@ -5,26 +5,36 @@ function get_cell(v)
     end
 end
 
-block_aabb = {0, 1, 0, 0.5, 0, 1}
-tall_aabb = {0, 1, 0, 1, 0, 1}
-
-block_planes = {
-    {pt = {-0.5, 0, 0}, normal = {-1, 0, 0}, aabb = {-0.5, 1, 0, 0.5, 0, 1}},
-    {pt = {0.5, 0, 0},  normal = {1, 0, 0}, aabb = {0, 1.5, 0, 0.5, 0, 1}},
-    {pt = {0, 0, -0.5}, normal = {0, 0, -1}, aabb = {0, 1, 0, 0.5, -0.5, 1}},
-    {pt = {0, 0, 0.5},  normal = {0, 0, 1}, aabb = {0, 1, 0, 0.5, 0, 1.5}},
-    {pt = {0, 0.5, 0},  normal = {0, 1, 0}, aabb = {0, 1, 0, 1, 0, 1}},
+block_volumes = {
+    {
+        {pt = {-0.5, 0, 0}, normal = {-1, 0, 0}},
+        {pt = {0.5, 0, 0},  normal = {1, 0, 0}},
+        {pt = {0, 0, -0.5}, normal = {0, 0, -1}},
+        {pt = {0, 0, 0.5},  normal = {0, 0, 1}},
+        {pt = {0, 0.5, 0},  normal = {0, 1, 0}},
+        {pt = {0, 0, 0},  normal = {0, -1, 0}},
+    }
 }
 
-ramp_planes = {
-    {pt = {-0.5, 0, 0}, normal = {-1, 0, 0}, aabb = {-0.5, 1, 0, 0.5, 0, 1}},
-    {pt = {0, 0.25, 0}, normal = v_norm({0.5, 1, 0}), aabb = {0, 1.5, 0, 0.5, 0, 1}},
+ramp_volumes = {
+    {
+        {pt = {-0.5, 0, 0}, normal = {-1, 0, 0}},
+        {pt = {0, 0, -0.5}, normal = {0, 0, -1}},
+        {pt = {0, 0, 0.5},  normal = {0, 0, 1}},
+        {pt = {0, 0.25, 0}, normal = v_norm({0.5, 1, 0})},
+        {pt = {0, 0, 0},  normal = {0, -1, 0}},
+    }
 }    
 
-qp_planes = {
-    {pt = {-0.5, 0, 0}, normal = {-1, 0, 0}, aabb = {-0.5, 1, 0, 1, 0, 1}},
-    --{pt = {0, 0, -0.5}, normal = {0, 0, -1}},
-    --{pt = {0, 0, 0.5},  normal = {0, 0, 1}},        
+qp_volumes = {
+    {
+        {pt = {-0.5, 0, 0}, normal = {-1, 0, 0}},
+        {pt = {-0.49, 0, 0}, normal = {1, 0, 0}},
+        {pt = {0, 0, -0.5}, normal = {0, 0, -1}},
+        {pt = {0, 0, 0.5},  normal = {0, 0, 1}},
+        {pt = {0, 0, 0},  normal = {0, -1, 0}},
+        {pt = {0, 1, 0},  normal = {0, 1, 0}},
+    }
 }
 local steps = 8
 local stepsize = 1 / (steps + 1) * 3.14159 / 2
@@ -32,47 +42,72 @@ for i = 0, steps + 1 do
     local angle = i * stepsize
     local y = cos(angle)
     local x = sin(angle)
-    add(qp_planes,
-        {pt = {0.49 - x * 0.97, (1-y) * 0.99, 0}, normal = v_norm({x, y, 0}), aabb = {0, 1, 0, 1.1, 0, 1}}
+    add(qp_volumes,
+        {
+            {pt = {0.49 - x * 0.97, (1-y) * 0.99, 0}, normal = v_norm({x, y, 0})},
+            {pt = {0, 0, -0.5}, normal = {0, 0, -1}},
+            {pt = {0, 0, 0.5},  normal = {0, 0, 1}},      
+            {pt = {-0.5, 0, 0}, normal = {-1, 0, 0}},  
+            {pt = {0, 0, 0},  normal = {0, -1, 0}},
+            {pt = {0, 1, 0},  normal = {0, 1, 0}},
+        }
     )
 end
 
-
-function in_aabb(pt, aabb)
-    local x, y, z = unpack(pt)
-    local px1, px2, py1, py2, pz1, pz2 = unpack(aabb)
-    --printh("aabb:")
-    --
-    if not (x >= px1 and x <= px2 and y >= py1 and y <= py2 and z >= pz1 and z <= pz2) then
-        --pv(pt)
-        --printh(px1 .. ", " .. px2 .. ", " .. py1 .. ", " .. py2 .. ", " .. pz1 .. ", " .. pz2)
+function plane_segment(plane, pt, vel)
+    local delta = v_sub(v_add(pt, vel), plane.pt)
+    local dot = v_dot(delta, plane.normal)
+    --printh("dot=" .. dot)
+    if dot < 0 then -- normal and delta are facing opposite directions
+        local vel_proj = abs(v_dot(vel, plane.normal))
+        local overlap_proj = abs(v_dot(delta, plane.normal))
+        local t = 1 - (overlap_proj / vel_proj)
+        if t >= 0 then
+            return t
+        end
     end
-    return x >= px1 and x <= px2 and y >= py1 and y <= py2 and z >= pz1 and z <= pz2
+    return nil
 end
 
-function find_first_collision(pt, vel, planes)
-    local eps = 0.00
-    local nearest, nt = nil, 999999
-    local next_pt = v_add(pt, vel)
-    for plane in all(planes) do
-        local delta = v_sub(next_pt, plane.pt)
-        local dot = v_dot(delta, plane.normal)
-        if dot < 0 then -- normal and delta are facing opposite directions
-            local vel_proj = abs(v_dot(vel, plane.normal))
-            local overlap_proj = abs(v_dot(delta, plane.normal))
-            local t = 1 - (overlap_proj / vel_proj)
-            if t >= 0 and t <= 1 and t < nt then
-                local new_pt = v_add(pt, v_mul(vel, t + eps))
-                if in_aabb(new_pt, plane.aabb) then
-                    nearest = plane
+function check_inside(pt, volume)
+    local inside = true
+    for plane in all(volume) do
+        if v_dot(v_sub(pt, plane.pt), plane.normal) > 0 then
+            inside = false
+        end
+    end    
+    return inside
+end
+
+function find_first_collision(pt, vel, volumes)
+    --printh("find first")
+        -- Check each plane in each volume
+        -- Get the plane and pt with lowest t value > 0
+        -- Check if that point is inside every plane in the volume
+        -- If we are that's a candidate volume and we record the closest plane and the t value            
+    local nearest_volume, nearest_plane, nt = nil, nil, 999999
+    local eps = 0.001
+    for volume in all(volumes) do
+        --printh("next volume")
+        local still_inside = true
+        for plane in all(volume) do
+            --printh("next plane")
+            local t = plane_segment(plane, pt, vel)
+            
+            if t != nil and t < nt then
+                --printh("t = " .. t)
+                local clipped_pt = v_add(pt, v_mul(vel, t + eps))
+                --printh("checking inside")
+                if check_inside (clipped_pt, volume) then
+                    --printh("yes!")
                     nt = t
-                else
-                    --printh("aabb fail")
+                    nearest_plane = plane
+                    nearest_volume = volume
                 end
             end
         end
     end
-    return nearest, nt
+    return nearest_volume, nearest_plane, nt
 end
 
 function rotate(v, fliph, flipv)
@@ -94,48 +129,55 @@ function rotate_aabb(v, fliph, flipv)
     return v
 end
 
-function prepare_collision_planes(cells)
+function prepare_volume(cell, v, is_elev_block)
     local planes = {}
+    for p in all(v) do
+        local y_offset = cell.elev
+        if is_elev_block then
+            if p.normal[2] >= 1 then
+                y_offset = -0.5 + cell.elev
+            else
+                y_offset = 0
+            end
+        end
+        local offset = {cell.x + 0.5, y_offset, cell.z + 0.5}
+        local new_plane = {
+            normal = rotate(p.normal, cell.fliph, cell.flipv),
+            pt = v_add(rotate(p.pt, cell.fliph, cell.flipv), offset),
+        }
+        --[[
+        add(debugs, function()
+            local p1, p2 = v2p(new_plane.pt), v2p(v_add(new_plane.pt, new_plane.normal))
+            line(p1[1], p1[2], p2[1], p2[2], 8)
+        end)]]
+              
+        add(planes, new_plane)
+    end    
+    return planes
+end
+
+function prepare_collision_volumes(cells)
+    local volumes = {}
     for cell in all(cells) do
         local tt = cell.tiletype
-        for p in all(tt.planes) do
-            local offset = {cell.x + 0.5, cell.elev, cell.z + 0.5}
-            local x1,x2,y1,y2,z1,z2 = unpack(rotate_aabb(p.aabb, cell.fliph, cell.flipv))
-            -- todo: rotation
-            local new_plane = {
-                normal = rotate(p.normal, cell.fliph, cell.flipv),
-                pt = v_add(rotate(p.pt, cell.fliph, cell.flipv), offset),
-                aabb = {
-                    x1 + cell.x,
-                    x2 + cell.x,
-                    y1,
-                    y2 + cell.elev,
-                    z1 + cell.z,
-                    z2 + cell.z
-                },
-            }
-            --[[
-            add(debugs, function()
-                local x1,x2,y1,y2,z1,z2 = unpack(new_plane.aabb)
-                local points = {{x1,y1,z1}, {x2,y1,z1}, {x2,y1,z2}, {x1,y1,z2}, {x1,y1,z1}}
-                line()
-                for point3 in all(points) do
-                    local point2 = v2p(point3)
-                    line(point2[1], point2[2], 8)
-                end
-            end)
-                ]]   
-            add(planes, new_plane)
+        if cell.elev > 0 then
+            add(volumes, prepare_volume(cell, block_volumes[1], true))
         end
+        for v in all(tt.volumes) do
+            local planes = prepare_volume(cell, v)
+
+            add(volumes, planes)
+        end
+        
     end
-    return planes
+    return volumes
 end
 
 function find_ground(pt)
     local cell = get_cell(pt)
     if cell then
         local down = {0, -pt[2], 0}
-        local nearest, nt = find_first_collision(pt, down, prepare_collision_planes({cell}))
+        local nearest_volume, nearest, nt = find_first_collision(pt, down, prepare_collision_volumes({cell}))
         if nearest then
             return v_add(pt, v_mul(down, nt))
         end
@@ -144,11 +186,11 @@ function find_ground(pt)
     
 end
 
-function collide_point_planes(pt, vel, planes)
+function collide_point_volumes(pt, vel, volumes)
     -- Find first collision, then adjust pos and vel,
     -- then repeat until no more collisions
 
-    if #planes == 0 then
+    if #volumes == 0 then
         return v_add(pt, vel), vel
     end
 
@@ -164,7 +206,7 @@ function collide_point_planes(pt, vel, planes)
         local mag = v_mag(new_vel)
         --printh("loop vel len = " .. mag)
         local start_pt = v_copy(new_pt)
-        local nearest, nt = find_first_collision(new_pt, new_vel, planes)
+        local nearest_volume, nearest, nt = find_first_collision(new_pt, new_vel, volumes)
         if nearest and loops < 20 then
             --printh("collision, nt = " .. nt)
             --pv(nearest.normal)

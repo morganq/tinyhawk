@@ -51,14 +51,12 @@ function make_skater()
                     end                    
                 end
             end        
-            local planes = prepare_collision_planes(cells)
+            local volumes = prepare_collision_volumes(cells)
 
-            add(planes, {pt={next_pos[1], 0, next_pos[3]}, normal={0,1,0}, aabb={-100,100,-1,1,-100,100}})
+            add(volumes, {{pt={next_pos[1], 0, next_pos[3]}, normal={0,1,0}}})
             local p1 = v_copy(self.pos)
-            self.pos, self.vel = collide_point_planes(self.pos, v_add(self.vel, {0, -0.02, 0}), planes)
-            --self.pos, _ = collide_point_planes(self.pos, {0,-0.02,0}, planes)
+            self.pos, self.vel = collide_point_volumes(self.pos, v_add(self.vel, {0, -0.02, 0}), volumes)
             self.vel = v_sub(self.pos, p1)
-            --self.vel = v_add(self.vel, gravity_force)            
 
             local cell = get_cell(self.pos)
             if cell and cell.tiletype.is_qp then
