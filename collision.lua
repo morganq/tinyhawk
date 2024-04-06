@@ -1,9 +1,4 @@
-function get_cell(v)
-    local x,z = v[1]\1, v[3]\1
-    if map[x] and map[x][z] then
-        return map[x][z]
-    end
-end
+ground_volume = {{pt={0,0,0}, normal={0,1,0}}}
 
 block_volumes = {
     {
@@ -200,55 +195,51 @@ function collide_point_volumes(pt, vel, volumes)
     local e = 0.001
     local eps = 0.001
     local loops = 0
-    --printh("--")
-    --printh("TOTAL VEL LEN = " .. v_mag(new_vel))
+    local collision_plane = nil
     while not done do
         local mag = v_mag(new_vel)
-        --printh("loop vel len = " .. mag)
         local start_pt = v_copy(new_pt)
         local nearest_volume, nearest, nt = find_first_collision(new_pt, new_vel, volumes)
+        
         if nearest and loops < 20 then
-            --printh("collision, nt = " .. nt)
-            --pv(nearest.normal)
+            collision_plane = nearest
             local t = nt - eps / mag
             local delta = v_mul(new_vel, t)
-            
             new_pt = v_add(new_pt, delta)
-            --printh("new point = ")
-            --pv(new_pt)
             local vel_rest = v_mul(new_vel, 1 - t)
-            --local tangent = {nearest.normal[2], -nearest.normal[1], nearest.normal[3]}
-            --local tangent = {0,0,1}
-            local tangent = v_norm( v_cross( v_cross( v_norm(new_vel), nearest.normal ), nearest.normal ) )
-            --printh("tangent")
-            --pv(tangent)            
+            local tangent = v_norm( v_cross( v_cross( v_norm(new_vel), nearest.normal ), nearest.normal ) )        
             local tmsq = v_mag( tangent )
             if tmsq < 0.9 or tmsq > 1.1 then
                 done = true
             else
                 local dist_tan = v_dot(vel_rest, tangent)
-                --printh(dist_tan .. " / " .. v_mag(vel_rest))
-                --new_vel = v_mul(tangent, v_mag(vel_rest) * sign(dist_tan))
                 new_vel = v_mul(tangent, dist_tan)
-                --pv(new_vel)
             end
-            
-            --new_vel = v_sub(new_vel, delta)
-            --local d = v_dot(new_vel, nearest.normal)
-            --local j = max((1 + e) * -d, 0);
-            --printh("old vel: " .. v_mag(new_vel))
-            
-            --new_vel = v_add(new_vel, v_mul(nearest.normal, j))
-            --local tangent = {nearest.normal.y, -nearest.normal.x, nearest.normal.z}
-            --local vel2 = v_sub(new_pt, start_pt)
-            --local projection = v_dot(vel2, tangent)
-            --new_vel = 
+     
             loops += 1
         else
             done = true
-            new_pt = v_add(new_pt, new_vel)
+            new_pt = v_add(new_pt, new_vel), collision_plane
         end
     end
     
-    return new_pt, v_sub(new_pt, pt)
+    return new_pt, v_sub(new_pt, pt), collision_plane
+end
+
+function get_rail_t(pt, rail)
+    local delta = v_sub(rail[2], rail[1])
+    local len = v_mag(delta)
+    local rail_fwd = v_norm(delta)
+    local pos_delta = v_sub(pt, rail[1])
+    return v_dot(pos_delta, rail_fwd), rail_fwd, len
+end
+
+function get_next_rail_pt(pt, fwd, speed, rail)
+    local t, rail_fwd, len = get_rail_t(pt, rail)
+    local t2 = t + speed
+    printh("t: " .. t .. " t2: " .. t2)
+    if v_dot(fwd, rail_fwd) < 0 then
+        t2 = t - speed
+    end
+    return v_add(rail[1], v_mul(rail_fwd, t2)), t, len
 end

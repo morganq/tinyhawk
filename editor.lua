@@ -54,6 +54,17 @@ function _update()
         editor_flipv = rotations[rotation + 1][2]
     end
 
+    if symbol == "g" then
+        fix_grinds()
+    end
+
+    if symbol == "s" then
+        save()
+    end
+    if symbol == "l" then
+        load()
+    end
+
     if btn(0) then 
         skater:control({1,0,-1})
     end
@@ -126,8 +137,33 @@ function _draw()
     debugs = {}
 
     camera()
-    print(mv[1] .. "," .. mv[2] .. "," .. mv[3], 1, 1, 8)
-    draw_v(v_mul(skater.fwd, 1), 20, 20)
+    --print(mv[1] .. "," .. mv[2] .. "," .. mv[3], 1, 1, 8)
+    --draw_v(v_mul(skater.fwd, 1), 20, 20)
     spr(1, mx, my)
-    print(stat(0), 1, 100, 11)
+    --print(stat(0), 1, 100, 11)
+    if skater.grind_line != nil then
+        print("~grind~", 40, 100, 8)
+    end
+end
+
+function save()
+    local string = ""
+    for x, zs in pairs(map) do
+        for z, cell in pairs(zs) do
+            string ..= x .. "," .. z .. "," .. cell.elev .. "," .. cell.index .. "," .. (cell.fliph and 1 or 0) .. "," .. (cell.flipv and 1 or 0) .. ";"
+        end
+    end    
+    printh(string)
+end
+
+local LEVEL = "-4,0,0,3,0,0;-1,0,0,2,0,0;-5,1,0,3,1,0;-5,-1,0,3,1,1;-5,0,0.5,1,1,1;-2,1,0,2,1,0;-2,0,0,1,0,0;-2,-1,0,1,0,0;-2,-2,0,1,0,0;-2,-3,0,1,0,0;-6,0,0,3,0,1;-3,-3,0,1,0,0"
+function load()
+    local s = LEVEL
+    for t in all(split(s, ";")) do
+        local parts = split(t, ",")
+        if parts then
+            add_map_tile(parts[1], parts[2], parts[4], parts[3], parts[5] == 1, parts[6] == 1)
+        end
+    end
+    fix_grinds()
 end

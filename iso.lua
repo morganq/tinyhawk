@@ -27,37 +27,44 @@ function isospr(s, v, h, elev, fliph, flipv)
             line(x, y, x, y + 8 * elev, 5)
         end        
     end
-    
+    pal()
 end
 
 ------
 
 tiles = {
     {sprite = 2, height = 0.5, volumes = block_volumes, rails = {
-        {{-0.5, 0.5, -0.5}, {-0.5, 0.5, 0.5}}
+        {{-0.499, 0.499, -0.499}, {-0.499, 0.499, 0.499}},
+        {{-0.499, 0.499, 0.499}, {0.499, 0.499, 0.499}},
+        {{0.499, 0.499, 0.499}, {0.499, 0.499, -0.499}},
+        {{0.499, 0.499, -0.499}, {-0.499, 0.499, -0.499}},
     }},
-    {sprite = 6, height = 0.5, volumes = ramp_volumes},
-    {sprite = 10, height = 1, volumes = qp_volumes, is_qp = true},
+    {sprite = 6, height = 0.5, volumes = ramp_volumes, rails = {
+        {{-0.499, 0.499, -0.499}, {-0.499, 0.499, 0.499}},
+        {{-0.499, 0.499, 0.499}, {0.499, 0, 0.499}},
+        {{0.499, 0, 0.499}, {0.499, 0, -0.499}},
+        {{0.499, 0, -0.499}, {-0.499, 0.499, -0.499}},
+    }},
+    {sprite = 10, height = 1, volumes = qp_volumes, is_qp = true, rails = {
+        {{-0.499, 0.999, -0.499}, {-0.499, 0.999, 0.499}},
+
+    }},
 }
 
 function make_cell(tile, x, z, elev, fliph, flipv)
     return {tiletype = tile, x=x, z=z, elev = elev or 0, fliph = fliph or false, flipv = flipv or false}
 end
 
+function get_cell(v)
+    local x,z = v[1]\1, v[3]\1
+    if map[x] and map[x][z] then
+        return map[x][z]
+    end
+end
+
 map = {}
-rails = {}
 
 local rendersize = 24
-
---[[
-cell:
-    x
-    z
-    elev
-    hflip
-    vflip
-    tiletype *
-]]
 
 function render_grid(x, z)
     for i = x, x + rendersize do
@@ -79,24 +86,33 @@ function add_map_tile(x, z, ind, elev, fliph, flipv)
     if map[x] == nil then map[x] = {} end
     if not map[x][z] then
         local tile = tiles[ind]   
+        local cell = make_cell(tile, x, z, elev, fliph, flipv)
         local e = {
             pos = {x,0,z},
             center = {x + 0.5, 0, z + 0.5},
-            cell = make_cell(tile, x, z, elev, fliph, flipv),
+            cell = cell,
             height = elev + 1,
             draw = function(self)
                 isospr(
                     self.cell.tiletype.sprite, {x,0,z},
                     self.cell.tiletype.height, self.cell.elev,
                     self.cell.fliph, self.cell.flipv)
+                --[[for rail in all(self.cell.rails) do
+                    local p1, p2 = v2p(rail[1]), v2p(rail[2])
+                    line(p1[1], p1[2], p2[1], p2[2], 9)
+                end]]--
             end
         }
-        e.cell.planes = planes
-        e.cell.ent = e
+        cell.ent = e
+        cell.index = ind
         add(all_entities, e)
         map[x][z] = e.cell 
+        e.cell.rails = {}
+        local rail_offset = {e.center[1], elev, e.center[3]}
         for rail in all(tile.rails) do
-            add(rails, {v_add(rail[1], e.center), v_add(rail[2], e.center)})
+            local r1 = rotate(rail[1], cell.fliph, cell.flipv)
+            local r2 = rotate(rail[2], cell.fliph, cell.flipv)
+            add(e.cell.rails, {v_add(r1, rail_offset), v_add(r2, rail_offset)})
         end
         
     end
@@ -122,11 +138,13 @@ function render_iso_entities(entities)
     for ent in all(all_entities) do
         ent:draw()
     end 
-    for rail in all(rails) do
-        local p1 = v2p(rail[1])
-        local p2 = v2p(rail[2])
-        line(p1[1], p1[2], p2[1], p2[2], 9)
+    if skater.grind_line then
+        local p1, p2 = v2p(skater.grind_line[1]), v2p(skater.grind_line[2])
+        line(p1[1], p1[2], p2[1], p2[2], 10)        
     end
+    fillp(0b1010010110100101.11)
+    skater:draw()
+    fillp()
 end
 
 function debug_tile(v, c)
@@ -146,4 +164,29 @@ function draw_v(v, ox, oy, c)
     local o2 = v2p({0,0,0})
     local dx, dy = o1[1] - o2[1], o1[2] - o2[2]
     line(ox, oy, ox + dx, oy + dy, c or 8)
+end
+
+function fix_grinds()
+    for x, zs in pairs(map) do
+        for z, cell in pairs(zs) do
+            volumes = prepare_collision_volumes(get_cells_within({x + 0.5, 0, z + 0.5}, 1))
+            add(volumes, ground_volume)
+            for rail in all(cell.rails) do
+                local center = v_mul(v_add(rail[1], rail[2]), 0.5)
+                local delta = v_sub(rail[2], rail[1])
+                local rf = v_norm(delta)
+                local side = v_mul(v_cross(rf, {0,1,0}), 0.125)
+                local test1 = v_add(center, side)
+                test1[2] += 20
+                local test2 = v_sub(center, side)
+                test2[2] += 20
+                local res1 = find_first_collision(test1, {0, -20.125, 0}, volumes)
+                local res2 = find_first_collision(test2, {0, -20.125, 0}, volumes)
+                if res1 and res2 then
+                    del(cell.rails, rail)
+                end
+            end
+        end
+    end
+    
 end

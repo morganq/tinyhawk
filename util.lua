@@ -36,8 +36,8 @@ function copy(t)
     return t2
 end
 
-function pv(v)
-    printh(v[1] .. "," .. v[2] .. "," .. v[3])
+function pv(v, label)
+    printh((label or "") .. v[1] .. "," .. v[2] .. "," .. v[3])
 end
 
 function v2p(v)
@@ -55,9 +55,9 @@ end
 function p2v(p)
     local x, y = p[1] - 64 - scroll[1], p[2] - 64 - scroll[2]
     return {
-       (x / -8 + y / 8) / 2,
+       (x / -8 + y / 4) / 2,
         0,
-       (y / 8 + x / 8) / 2,
+       (y / 4 + x / 8) / 2,
     }
 end
 
@@ -72,3 +72,13 @@ function sort(a,cmp)
 end
 
 function sign(x) return x > 0 and 1 or -1 end
+
+function get_cells_within(pt, range)
+    local cells = {}
+    for x = pt[1] - range, pt[1] + range do
+        for z = pt[3] - range, pt[3] + range do
+            add(cells, get_cell({x,0,z}))
+        end
+    end
+    return cells
+end
