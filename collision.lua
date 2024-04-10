@@ -31,7 +31,7 @@ qp_volumes = {
         {pt = {0, 1, 0},  normal = {0, 1, 0}},
     }
 }
-local steps = 8
+local steps = 2
 local stepsize = 1 / (steps + 1) * 3.14159 / 2
 for i = 0, steps + 1 do
     local angle = i * stepsize
@@ -65,17 +65,15 @@ function plane_segment(plane, pt, vel)
 end
 
 function check_inside(pt, volume)
-    local inside = true
     for plane in all(volume) do
         if v_dot(v_sub(pt, plane.pt), plane.normal) > 0 then
-            inside = false
+            return false
         end
     end    
-    return inside
+    return true
 end
 
 function find_first_collision(pt, vel, volumes)
-    --printh("find first")
         -- Check each plane in each volume
         -- Get the plane and pt with lowest t value > 0
         -- Check if that point is inside every plane in the volume
@@ -83,18 +81,12 @@ function find_first_collision(pt, vel, volumes)
     local nearest_volume, nearest_plane, nt = nil, nil, 999999
     local eps = 0.001
     for volume in all(volumes) do
-        --printh("next volume")
         local still_inside = true
         for plane in all(volume) do
-            --printh("next plane")
             local t = plane_segment(plane, pt, vel)
-            
             if t != nil and t < nt then
-                --printh("t = " .. t)
                 local clipped_pt = v_add(pt, v_mul(vel, t + eps))
-                --printh("checking inside")
                 if check_inside (clipped_pt, volume) then
-                    --printh("yes!")
                     nt = t
                     nearest_plane = plane
                     nearest_volume = volume
@@ -126,6 +118,7 @@ end
 
 function prepare_volume(cell, v, is_elev_block)
     local planes = {}
+    -- OPT; Some stuff could be memoized, normal and pt rotations, but not offsets
     for p in all(v) do
         local y_offset = cell.elev
         if is_elev_block then
@@ -140,12 +133,6 @@ function prepare_volume(cell, v, is_elev_block)
             normal = rotate(p.normal, cell.fliph, cell.flipv),
             pt = v_add(rotate(p.pt, cell.fliph, cell.flipv), offset),
         }
-        --[[
-        add(debugs, function()
-            local p1, p2 = v2p(new_plane.pt), v2p(v_add(new_plane.pt, new_plane.normal))
-            line(p1[1], p1[2], p2[1], p2[2], 8)
-        end)]]
-              
         add(planes, new_plane)
     end    
     return planes
@@ -168,11 +155,12 @@ function prepare_collision_volumes(cells)
     return volumes
 end
 
-function find_ground(pt)
+function find_ground(pt, volumes)
     local cell = get_cell(pt)
     if cell then
         local down = {0, -pt[2], 0}
-        local nearest_volume, nearest, nt = find_first_collision(pt, down, prepare_collision_volumes({cell}))
+        volumes = volumes or prepare_collision_volumes({cell})
+        local nearest_volume, nearest, nt = find_first_collision(pt, down, volumes)
         if nearest then
             return v_add(pt, v_mul(down, nt))
         end
@@ -222,7 +210,6 @@ function collide_point_volumes(pt, vel, volumes)
             new_pt = v_add(new_pt, new_vel), collision_plane
         end
     end
-    
     return new_pt, v_sub(new_pt, pt), collision_plane
 end
 
@@ -237,7 +224,6 @@ end
 function get_next_rail_pt(pt, fwd, speed, rail)
     local t, rail_fwd, len = get_rail_t(pt, rail)
     local t2 = t + speed
-    printh("t: " .. t .. " t2: " .. t2)
     if v_dot(fwd, rail_fwd) < 0 then
         t2 = t - speed
     end

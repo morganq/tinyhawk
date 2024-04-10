@@ -2,7 +2,7 @@ pal_flip =   split"5,2,3,4,13,6,15,8,9,10,11,6,13,14,15"
 pal_noflip = split"13,2,3,4,5,6,15,8,9,10,11,6,13,14,15"
 --pal_noflip = split"6,2,3,4,5,6,7,8,9,10,11,15,13,14,15"
 
-function isospr(s, v, h, elev, fliph, flipv)
+function isospr(s, v, h, elev, fliph, flipv, draw_elev_left, draw_elev_right)
     elev = elev or 0
     local p = v2p(v)
     local x1, y1, y2 = p[1] - 8, p[2] - h * 8 - elev * 8, p[2] + 4 - elev * 8
@@ -15,19 +15,27 @@ function isospr(s, v, h, elev, fliph, flipv)
         s += 2
     end
     spr(s, x1, y1, 2, h + 1, fliph)
-    if elev > 0 then
-        for ox = 0, 7 do
-            local x = p[1] - 8 + ox
-            local y = y2 + ox \ 2
-            line(x, y, x, y + 8 * elev, 13)
-        end
-        for ox = 8, 15 do
-            local x = p[1] - 8 + ox
-            local y = y2 + 8 - (ox+1) \ 2
-            line(x, y, x, y + 8 * elev, 5)
-        end        
-    end
     pal()
+    if elev > 0 then
+        local elev8 = 8 * elev
+        if draw_elev_left then
+            local px = p[1] - 8
+            for ox = 0, 7 do
+                local x = px + ox
+                local y = y2 + ox \ 2
+                line(x, y, x, y + elev8, 13)
+            end
+        end
+        if draw_elev_right then
+            local px = p[1] - 8
+            for ox = 8, 15 do
+                local x = px + ox
+                local y = y2 + 8 - (ox+1) \ 2
+                line(x, y, x, y + elev8, 5)
+            end        
+        end
+    end
+    
 end
 
 ------
@@ -81,9 +89,17 @@ end
 
 all_entities = {}
 
+--.41
+--.55
+
 function add_map_tile(x, z, ind, elev, fliph, flipv)
     elev = elev or 0
     if map[x] == nil then map[x] = {} end
+    if map[x][z] then
+        local cell = map[x][z]
+        del(all_entities, cell.ent)
+        map[x][z] = nil
+    end
     if not map[x][z] then
         local tile = tiles[ind]   
         local cell = make_cell(tile, x, z, elev, fliph, flipv)
@@ -93,14 +109,12 @@ function add_map_tile(x, z, ind, elev, fliph, flipv)
             cell = cell,
             height = elev + 1,
             draw = function(self)
+                local l = not(map[x + 1] and map[x + 1][z] and map[x + 1][z].elev >= elev)
+                local r = not(map[x] and map[x][z + 1] and map[x][z + 1].elev >= elev)
                 isospr(
                     self.cell.tiletype.sprite, {x,0,z},
                     self.cell.tiletype.height, self.cell.elev,
-                    self.cell.fliph, self.cell.flipv)
-                --[[for rail in all(self.cell.rails) do
-                    local p1, p2 = v2p(rail[1]), v2p(rail[2])
-                    line(p1[1], p1[2], p2[1], p2[2], 9)
-                end]]--
+                    self.cell.fliph, self.cell.flipv, l, r)
             end
         }
         cell.ent = e
@@ -118,25 +132,41 @@ function add_map_tile(x, z, ind, elev, fliph, flipv)
     end
 end
 
+function sort_normalize(a)
+    return a.center[1]\1 + a.center[2]\1 + a.center[3] \ 1
+end
+function axissort(a, b)
+    local d = v_sub(a.center, b.center)
+    if abs(d[2]) >= a.height / 2 + b.height / 2 then
+        return d[2] > 0
+    end
+    --[[if abs(d[1]) >= 1 then
+        return d[1] > 0
+    end
+    if abs(d[3]) >= 1 then
+        return d[3] > 0
+    end ]]   
+    return sort_normalize(a) > sort_normalize(b)
+end
+
+function sort_ents()    
+    sort(all_entities, axissort)
+end
+
 function render_iso_entities(entities)
     local v = p2vi({64, 64})
-    local x1 = v[1]
-    local z1 = v[3]
-    render_grid(x1 - rendersize \ 2, z1 - rendersize \ 2)
-    function normalize(a)
-        return a.center[1]\1 + a.center[2]\1 + a.center[3] \ 1
-    end
-    local axissort = function(a, b)
-        local dy = a.center[2] - b.center[2]
-        if abs(dy) >= a.height / 2 + b.height / 2 then
-            -- separated by y
-            return dy > 0
-        end
-        return normalize(a) > normalize(b)
-    end
-    sort(all_entities, axissort)
+    local x1, x2 = v[1] - rendersize \ 2, v[1] + rendersize \ 2
+    local z1, z2 = v[3] - rendersize \ 2, v[3] + rendersize \ 2
+    
+    del(all_entities, skater)
+    del(all_entities, skater.shadow)
+    insert_cmp(all_entities, skater, axissort)
+    insert_cmp(all_entities, skater.shadow, axissort)
+
     for ent in all(all_entities) do
-        ent:draw()
+        if not ent.cell or (ent.cell.x >= x1 and ent.cell.z >= z1 and ent.cell.x <= x2 and ent.cell.z <= z2) then
+            ent:draw()
+        end
     end 
     if skater.grind_line then
         local p1, p2 = v2p(skater.grind_line[1]), v2p(skater.grind_line[2])
@@ -166,7 +196,15 @@ function draw_v(v, ox, oy, c)
     line(ox, oy, ox + dx, oy + dy, c or 8)
 end
 
+function pset3d(v,c)
+    local o1 = v2p(v)
+    pset(o1[1], o1[2], c)
+end
+
 function fix_grinds()
+    cls(7)
+    print("loading", 50, 60, 0)
+    flip()
     for x, zs in pairs(map) do
         for z, cell in pairs(zs) do
             volumes = prepare_collision_volumes(get_cells_within({x + 0.5, 0, z + 0.5}, 1))
@@ -188,5 +226,5 @@ function fix_grinds()
             end
         end
     end
-    
+    sort_ents()
 end

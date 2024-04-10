@@ -70,6 +70,15 @@ function sort(a,cmp)
         end
     end
 end
+function insert_cmp(a, v, cmp)
+    for i=1,#a do
+        if cmp(a[i],v) then
+            add(a, v, i)
+            return
+        end
+    end
+    add(a,v,i)
+end
 
 function sign(x) return x > 0 and 1 or -1 end
 
