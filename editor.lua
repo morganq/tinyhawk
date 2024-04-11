@@ -3,6 +3,8 @@ poke(0X5F5C, 255)
 scroll = {0,0}
 debugs = {}
 local is_editing = true
+SHOW_DEPTH = true
+
 function do_test()
     local volumes = {
         --{ pt = {-5, 0, 0}, normal = v_norm({1, 1, 0}), aabb = {-10, 10, -10, 10, -10, 10} },
@@ -102,6 +104,10 @@ function _update()
         load()
     end
 
+    if symbol == "w" then
+        SHOW_DEPTH = not SHOW_DEPTH
+    end
+
     if is_editing then  
     
         if symbol == "q" then
@@ -126,6 +132,7 @@ function _update()
 
         if (mb & 0b01) != 0 then
             add_map_tile(mv[1], mv[3], editor_sel, editor_elev, editor_fliph, editor_flipv)
+            presort_cells()
         end
         if (mb & 0b10) != 0 and not mbs[2] then
             editor_sel = (editor_sel % 3) + 1
@@ -146,6 +153,7 @@ function _draw()
         local t = tiles[editor_sel]
         edit_ent.center = mv
         edit_ent.height = editor_elev + 1
+        edit_ent.depth = get_depth(edit_ent)
         edit_ent.draw = function(self)
             isospr(t.sprite, mv, t.height, editor_elev, editor_fliph, editor_flipv, true, true)
         end

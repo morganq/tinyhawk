@@ -5,6 +5,7 @@ function make_skater()
     local e = {
         pos = {0.5, 0, 0.5},
         center = {0.5, 0, 0.5},
+        depth = 0,
         vel = {0, 0, 0},
         fwd = {-1, 0, 0},
         flat_fwd = {1, 0, 0},
@@ -107,7 +108,8 @@ function make_skater()
             
             self:update_qp()
               
-            local volumes = prepare_collision_volumes(get_cells_within(self.pos, 0.5))
+            local touching_cells = get_cells_within(self.pos, 0.5)
+            local volumes = prepare_collision_volumes(touching_cells)
             
             --volumes = {}
             add(volumes, ground_volume)
@@ -152,6 +154,19 @@ function make_skater()
                 self.char_yv = self.vel[2]
             end
             if self.airborne then self.airborne_frames += 1 end
+            local hh = 0
+            local cell_below = get_cell(self.pos)
+            if cell_below then
+                hh = cell_below.ent.center[2] + 0.1
+            end
+            --[[for cell in all(touching_cells) do
+                printh(cell.ent.height)
+                if self.pos[2] > cell.ent.height then
+                    hh = 0.9
+                end
+            end]]
+            self.depth = self.pos[1]\1 + hh + self.pos[3]\1 + 1
+            self.shadow.depth = self.depth
         end,
         update_qp = function(self)
             if not self.airborne then
@@ -254,6 +269,7 @@ function make_skater()
     e.shadow = {
         pos = {0,0,0},
         center = {0,0,0},
+        depth = 0,
         height = 0,
         draw = function(self)
             local p = v2p(self.pos)

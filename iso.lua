@@ -106,6 +106,7 @@ function add_map_tile(x, z, ind, elev, fliph, flipv)
         local e = {
             pos = {x,0,z},
             center = {x + 0.5, 0, z + 0.5},
+            depth = 0,
             cell = cell,
             height = elev + 1,
             draw = function(self)
@@ -117,11 +118,13 @@ function add_map_tile(x, z, ind, elev, fliph, flipv)
                     self.cell.fliph, self.cell.flipv, l, r)
             end
         }
+        e.depth = get_depth(e)
         cell.ent = e
         cell.index = ind
         add(all_entities, e)
         map[x][z] = e.cell 
         e.cell.rails = {}
+        e.depth = axis
         local rail_offset = {e.center[1], elev, e.center[3]}
         for rail in all(tile.rails) do
             local r1 = rotate(rail[1], cell.fliph, cell.flipv)
@@ -132,8 +135,12 @@ function add_map_tile(x, z, ind, elev, fliph, flipv)
     end
 end
 
-function sort_normalize(a)
-    return a.center[1]\1 + a.center[2]\1 + a.center[3] \ 1
+function get_depth(a)
+    if a.depth_point then
+        return a.depth_point[1] + a.depth_point[2] + a.depth_point[3]
+    else
+        return a.center[1] + a.center[2] + a.center[3]
+    end
 end
 function axissort(a, b)
     local d = v_sub(a.center, b.center)
@@ -146,11 +153,20 @@ function axissort(a, b)
     if abs(d[3]) >= 1 then
         return d[3] > 0
     end ]]   
-    return sort_normalize(a) > sort_normalize(b)
+    return get_depth(a) > get_depth(b)
 end
 
-function sort_ents()    
-    sort(all_entities, axissort)
+function presort_cells()
+    for ent in all(all_entities) do
+        if ent.cell then
+            ent.depth = get_depth(ent)
+        else
+            ent.depth = 0
+        end
+    end
+    sort(all_entities, function(a,b)
+        return a.depth > b.depth
+    end)
 end
 
 function render_iso_entities(entities)
@@ -158,14 +174,22 @@ function render_iso_entities(entities)
     local x1, x2 = v[1] - rendersize \ 2, v[1] + rendersize \ 2
     local z1, z2 = v[3] - rendersize \ 2, v[3] + rendersize \ 2
     
+    -- can opt with deli if needed
     del(all_entities, skater)
     del(all_entities, skater.shadow)
-    insert_cmp(all_entities, skater, axissort)
-    insert_cmp(all_entities, skater.shadow, axissort)
+    insert_cmp(all_entities, skater, function(a,b) return a.depth > b.depth end)
+    insert_cmp(all_entities, skater.shadow, function(a,b) return a.depth > b.depth end)
 
     for ent in all(all_entities) do
         if not ent.cell or (ent.cell.x >= x1 and ent.cell.z >= z1 and ent.cell.x <= x2 and ent.cell.z <= z2) then
             ent:draw()
+            if SHOW_DEPTH and ent.depth then
+                add(debugs, function()
+                    local v = v2p(ent.center)
+                    local d = sub(tostr(ent.depth), 0, 3)
+                    print(d, v[1] - 4, v[2] - 2, 0)
+                end)
+            end
         end
     end 
     if skater.grind_line then
@@ -226,5 +250,5 @@ function fix_grinds()
             end
         end
     end
-    sort_ents()
+    presort_cells()
 end

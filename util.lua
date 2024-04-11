@@ -86,7 +86,10 @@ function get_cells_within(pt, range)
     local cells = {}
     for x = pt[1] - range, pt[1] + range do
         for z = pt[3] - range, pt[3] + range do
-            add(cells, get_cell({x,0,z}))
+            local cell = get_cell({x,0,z})
+            if cell then
+                add(cells, cell)
+            end
         end
     end
     return cells
