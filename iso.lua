@@ -1,21 +1,28 @@
-pal_flip =   split"5,2,3,4,13,6,15,8,9,10,11,6,13,14,15"
-pal_noflip = split"13,2,3,4,5,6,15,8,9,10,11,6,13,14,15"
---pal_noflip = split"6,2,3,4,5,6,7,8,9,10,11,15,13,14,15"
+pal_bl = split"13,2,3,4,5,6,15,8,9,10,11,6,13,14,15"
+pal_br = split"5,2,3,4,13,6,15,8,9,10,11,6,13,14,15"
+pal_tl = split"13,2,3,4,5,6,15,8,9,10,11,6,13,14,15"
+pal_tr = split"5,2,3,4,13,6,15,8,9,10,11,5,13,14,15"
+isopals = {
+    {pal_bl, pal_br},
+    {pal_tl, pal_tr}
+}
 
-function isospr(s, v, h, elev, fliph, flipv, draw_elev_left, draw_elev_right)
+function isospr(s, v, h, elev, fliph, flipv, draw_elev_left, draw_elev_right, bright_left, bright_right)
     elev = elev or 0
     local p = v2p(v)
     local x1, y1, y2 = p[1] - 8, p[2] - h * 8 - elev * 8, p[2] + 4 - elev * 8
-    if fliph then
-        pal(pal_flip)
-    else
-        pal(pal_noflip)
-    end
+    pal(isopals[flipv and 2 or 1][fliph and 2 or 1])
     if flipv then
         s += 2
     end
     spr(s, x1, y1, 2, h + 1, fliph)
     pal()
+    if bright_left then
+        spr(64, x1 - 1, y1, 2, 1)
+    end
+    if bright_right then
+        spr(66, x1 + 7, y1, 2, 1)
+    end
     if elev > 0 then
         local elev8 = 8 * elev
         if draw_elev_left then
@@ -41,7 +48,7 @@ end
 ------
 
 tiles = {
-    {sprite = 2, height = 0.5, volumes = block_volumes, rails = {
+    {sprite = 2, height = 0.5, volumes = block_volumes, is_block = true, rails = {
         {{-0.499, 0.499, -0.499}, {-0.499, 0.499, 0.499}},
         {{-0.499, 0.499, 0.499}, {0.499, 0.499, 0.499}},
         {{0.499, 0.499, 0.499}, {0.499, 0.499, -0.499}},
@@ -60,7 +67,7 @@ tiles = {
 }
 
 function make_cell(tile, x, z, elev, fliph, flipv)
-    return {tiletype = tile, x=x, z=z, elev = elev or 0, fliph = fliph or false, flipv = flipv or false}
+    return {tiletype = tile, x=x, z=z, elev = elev or 0, fliph = fliph or false, flipv = flipv or false, prepared_volumes = {}}
 end
 
 function get_cell(v)
@@ -109,13 +116,17 @@ function add_map_tile(x, z, ind, elev, fliph, flipv)
             depth = 0,
             cell = cell,
             height = elev + 1,
+            bright_left = false,
+            bright_right = false, 
             draw = function(self)
+                -- memo
                 local l = not(map[x + 1] and map[x + 1][z] and map[x + 1][z].elev >= elev)
                 local r = not(map[x] and map[x][z + 1] and map[x][z + 1].elev >= elev)
+                
                 isospr(
-                    self.cell.tiletype.sprite, {x,0,z},
-                    self.cell.tiletype.height, self.cell.elev,
-                    self.cell.fliph, self.cell.flipv, l, r)
+                    cell.tiletype.sprite, {x,0,z},
+                    cell.tiletype.height, cell.elev,
+                    cell.fliph, cell.flipv, l, r, self.bright_left, self.bright_right)                    
             end
         }
         e.depth = get_depth(e)
@@ -225,12 +236,32 @@ function pset3d(v,c)
     pset(o1[1], o1[2], c)
 end
 
+function fix_brights()
+    for x, zs in pairs(map) do
+        for z, cell in pairs(zs) do
+            cell.ent.bright_left = false
+            cell.ent.bright_right = false
+            if cell.tiletype.is_block then
+                local left = get_cell({x, 0, z - 1})
+                local right = get_cell({x - 1, 0, z})
+                if not left or left.ent.height <= cell.ent.height - 0.5 then
+                    cell.ent.bright_left = true
+                end
+                if not right or right.ent.height <= cell.ent.height - 0.5 then
+                    cell.ent.bright_right = true
+                end            
+            end
+        end
+    end    
+end
+
 function fix_grinds()
     cls(7)
     print("loading", 50, 60, 0)
     flip()
     for x, zs in pairs(map) do
         for z, cell in pairs(zs) do
+            cell.prepared_planes = nil
             volumes = prepare_collision_volumes(get_cells_within({x + 0.5, 0, z + 0.5}, 1))
             add(volumes, ground_volume)
             for rail in all(cell.rails) do
@@ -251,4 +282,5 @@ function fix_grinds()
         end
     end
     presort_cells()
+    fix_brights()
 end

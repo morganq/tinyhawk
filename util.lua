@@ -1,6 +1,8 @@
 -- Use "normal" sin and cos fns rather than p8's
 p8cos = cos function cos(angle) return p8cos(angle/(3.1415*2)) end
 p8sin = sin function sin(angle) return -p8sin(angle/(3.1415*2)) end
+p8atan2 = atan2 function atan2(x,y) return p8atan2(x,-y) * 6.2818 end
+function tan(angle) return sin(angle) / cos(angle) end
 
 
 ----- VECTORS -----

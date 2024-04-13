@@ -10,6 +10,15 @@ trick_inputs = {
     rl = "bs 360",
 }
 
+-- yaw pitch roll
+tricks = {
+    kickflip = {spin = {0, 0, 360}, time = 8},
+    heelflip = {spin = {0, 0, -360}, time = 13},
+    shuvit = {spin = {-180, 0, 0}, time = 8},
+    ["360 flip"] = {spin = {-360, 0, 360}, time = 15},
+    hardflip = {spin = {-180, 0, 360}, time = 15},
+}
+
 function add_input(k)
     add(input_list, {key = k, time = time})
 end
@@ -69,6 +78,8 @@ end
 function add_combo(trick)
     add(combo, {trick = trick})
     latest_trick_time = 10
+end
+function increment_combo()
 end
 function update_combo()
     latest_trick_time = max(latest_trick_time - 1, 0)

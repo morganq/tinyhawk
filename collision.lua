@@ -31,7 +31,7 @@ qp_volumes = {
         {pt = {0, 1, 0},  normal = {0, 1, 0}},
     }
 }
-local steps = 2
+local steps = 4
 local stepsize = 1 / (steps + 1) * 3.14159 / 2
 for i = 0, steps + 1 do
     local angle = i * stepsize
@@ -141,16 +141,23 @@ end
 function prepare_collision_volumes(cells)
     local volumes = {}
     for cell in all(cells) do
-        local tt = cell.tiletype
-        if cell.elev > 0 then
-            add(volumes, prepare_volume(cell, block_volumes[1], true))
+        if #cell.prepared_volumes > 0 then
+            for v in all(cell.prepared_volumes) do
+                add(volumes, v)
+            end
+        else
+            local tt = cell.tiletype
+            if cell.elev > 0 then
+                local v = prepare_volume(cell, block_volumes[1], true)
+                add(cell.prepared_volumes, v)
+                add(volumes, v)
+            end
+            for v in all(tt.volumes) do
+                local planes = prepare_volume(cell, v)
+                add(cell.prepared_volumes, planes)
+                add(volumes, planes)
+            end
         end
-        for v in all(tt.volumes) do
-            local planes = prepare_volume(cell, v)
-
-            add(volumes, planes)
-        end
-        
     end
     return volumes
 end

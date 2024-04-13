@@ -3,7 +3,7 @@ poke(0X5F5C, 255)
 scroll = {0,0}
 debugs = {}
 local is_editing = true
-SHOW_DEPTH = true
+SHOW_DEPTH = false
 
 function do_test()
     local volumes = {
@@ -48,18 +48,12 @@ function _update()
     mx, my, mb = stat(32), stat(33), stat(34)
     mv = p2vi({mx, my})
 
-    local dir = {0,0,0}
+    local dir = 0
     if btn(0) then 
-        dir = v_add(dir, {1,0,-1})
+        dir += 1
     end
     if btn(1) then
-        dir = v_add(dir, {-1,0,1})
-    end
-    if btn(2) then
-        dir = v_add(dir, {-1,0,-1})
-    end
-    if btn(3) then
-        dir = v_add(dir, {1,0,1})
+        dir += -1
     end
     skater:control(dir, btn(5))
     if btn(5) then
@@ -116,8 +110,6 @@ function _update()
             editor_flipv = rotations[rotation + 1][2]
         end
     
-
-    
         if symbol == "s" then
             save()
         end
@@ -145,7 +137,7 @@ end
 editor_sel = 1
 
 function _draw()
-    cls(7)      
+    cls(15)
     local pts = {{0,0,0}, {1,0,0}, {1,0,1}, {0,0,1}, {0,0,0}}
     camera(-scroll[1], -scroll[2])
 
@@ -187,6 +179,7 @@ function _draw()
     --print(stat(0), 1, 100, 11)
     draw_inputs(2, 2)
     draw_combo()
+    pal(split"1,2,3,4,5,143,7,8,9,10,11,12,128,14,15,0",1)
 end
 
 function save()
