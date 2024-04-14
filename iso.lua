@@ -1,7 +1,12 @@
-pal_bl = split"13,2,3,4,5,6,15,8,9,10,11,6,13,14,15"
+--[[pal_bl = split"13,2,3,4,5,6,15,8,9,10,11,6,13,14,15"
 pal_br = split"5,2,3,4,13,6,15,8,9,10,11,6,13,14,15"
 pal_tl = split"13,2,3,4,5,6,15,8,9,10,11,6,13,14,15"
 pal_tr = split"5,2,3,4,13,6,15,8,9,10,11,5,13,14,15"
+]]
+pal_bl = split"1,5,3,4,5,6,15,13,6,15,11,12,13,14,6,0"
+pal_br = split"5,13,3,4,1,13,15,6,15,15,11,12,5,14,6,0"
+pal_tl = split"1,5,3,4,5,6,15,13,6,15,11,12,13,14,6,0"
+pal_tr = split"5,13,3,4,1,13,15,6,15,15,11,12,5,14,6,0"
 isopals = {
     {pal_bl, pal_br},
     {pal_tl, pal_tr}
@@ -18,10 +23,10 @@ function isospr(s, v, h, elev, fliph, flipv, draw_elev_left, draw_elev_right, br
     spr(s, x1, y1, 2, h + 1, fliph)
     pal()
     if bright_left then
-        spr(64, x1 - 1, y1, 2, 1)
+        spr(64, x1, y1, 1, 1)
     end
     if bright_right then
-        spr(66, x1 + 7, y1, 2, 1)
+        spr(66, x1 + 8, y1, 1, 1)
     end
     if elev > 0 then
         local elev8 = 8 * elev
@@ -30,15 +35,15 @@ function isospr(s, v, h, elev, fliph, flipv, draw_elev_left, draw_elev_right, br
             for ox = 0, 7 do
                 local x = px + ox
                 local y = y2 + ox \ 2
-                line(x, y, x, y + elev8, 13)
+                line(x, y+1, x, y + elev8, 5)
             end
         end
         if draw_elev_right then
             local px = p[1] - 8
             for ox = 8, 15 do
                 local x = px + ox
-                local y = y2 + 8 - (ox+1) \ 2
-                line(x, y, x, y + elev8, 5)
+                local y = y2 + 8 - (ox+2) \ 2
+                line(x, y+1, x, y + elev8, 1)
             end        
         end
     end
@@ -59,10 +64,18 @@ tiles = {
         {{-0.499, 0.499, 0.499}, {0.499, 0, 0.499}},
         {{0.499, 0, 0.499}, {0.499, 0, -0.499}},
         {{0.499, 0, -0.499}, {-0.499, 0.499, -0.499}},
-    }},
+    }},  
     {sprite = 10, height = 1, volumes = qp_volumes, is_qp = true, rails = {
         {{-0.499, 0.999, -0.499}, {-0.499, 0.999, 0.499}},
-
+    }},
+    {sprite = 34, height = 0.5, volumes = rail1_volumes, rails = {
+        {{-0.499, 0.499, 0}, {0.499, 0.499, 0}},
+    }},    
+    {sprite = 38, height = 1, volumes = ramp2_volumes, rails = {
+        {{-0.499, 0.999, -0.499}, {-0.499, 0.999, 0.499}},
+        {{-0.499, 0.999, 0.499}, {0.499, 0, 0.499}},
+        {{0.499, 0, 0.499}, {0.499, 0, -0.499}},
+        {{0.499, 0, -0.499}, {-0.499, 0.999, -0.499}},
     }},
 }
 

@@ -19,7 +19,28 @@ ramp_volumes = {
         {pt = {0, 0.25, 0}, normal = v_norm({0.5, 1, 0})},
         {pt = {0, 0, 0},  normal = {0, -1, 0}},
     }
-}    
+}   
+
+ramp2_volumes = {
+    {
+        {pt = {-0.5, 0, 0}, normal = {-1, 0, 0}},
+        {pt = {0, 0, -0.5}, normal = {0, 0, -1}},
+        {pt = {0, 0, 0.5},  normal = {0, 0, 1}},
+        {pt = {0, 0.5, 0}, normal = v_norm({1, 1, 0})},
+        {pt = {0, 0, 0},  normal = {0, -1, 0}},
+    }
+}   
+
+rail1_volumes = {
+    {
+        {pt = {-0.5, 0, 0}, normal = {-1, 0, 0}},
+        {pt = {0.5, 0, 0},  normal = {1, 0, 0}},
+        {pt = {0, 0, -0.1}, normal = {0, 0, -1}},
+        {pt = {0, 0, 0.1},  normal = {0, 0, 1}},
+        {pt = {0, 0.5, 0},  normal = {0, 1, 0}},
+        {pt = {0, 0, 0},  normal = {0, -1, 0}},
+    }
+}
 
 qp_volumes = {
     {
@@ -149,12 +170,12 @@ function prepare_collision_volumes(cells)
             local tt = cell.tiletype
             if cell.elev > 0 then
                 local v = prepare_volume(cell, block_volumes[1], true)
-                add(cell.prepared_volumes, v)
+                --add(cell.prepared_volumes, v)
                 add(volumes, v)
             end
             for v in all(tt.volumes) do
                 local planes = prepare_volume(cell, v)
-                add(cell.prepared_volumes, planes)
+                --add(cell.prepared_volumes, planes)
                 add(volumes, planes)
             end
         end
