@@ -53,25 +53,25 @@ end
 ------
 
 tiles = {
-    {sprite = 2, height = 0.5, volumes = block_volumes, is_block = true, rails = {
+    {name="block", sprite = 2, height = 0.5, volumes = block_volumes, is_block = true, rails = {
         {{-0.499, 0.499, -0.499}, {-0.499, 0.499, 0.499}},
         {{-0.499, 0.499, 0.499}, {0.499, 0.499, 0.499}},
         {{0.499, 0.499, 0.499}, {0.499, 0.499, -0.499}},
         {{0.499, 0.499, -0.499}, {-0.499, 0.499, -0.499}},
     }},
-    {sprite = 6, height = 0.5, volumes = ramp_volumes, rails = {
+    {name="ramp1", sprite = 6, height = 0.5, volumes = ramp_volumes, rails = {
         {{-0.499, 0.499, -0.499}, {-0.499, 0.499, 0.499}},
         {{-0.499, 0.499, 0.499}, {0.499, 0, 0.499}},
         {{0.499, 0, 0.499}, {0.499, 0, -0.499}},
         {{0.499, 0, -0.499}, {-0.499, 0.499, -0.499}},
     }},  
-    {sprite = 10, height = 1, volumes = qp_volumes, is_qp = true, rails = {
+    {name="qp", sprite = 10, height = 1, volumes = qp_volumes, is_qp = true, rails = {
         {{-0.499, 0.999, -0.499}, {-0.499, 0.999, 0.499}},
     }},
-    {sprite = 34, height = 0.5, volumes = rail1_volumes, rails = {
+    {name="rail1", sprite = 34, height = 0.5, volumes = rail1_volumes, rails = {
         {{-0.499, 0.499, 0}, {0.499, 0.499, 0}},
     }},    
-    {sprite = 38, height = 1, volumes = ramp2_volumes, rails = {
+    {name="ramp2", sprite = 38, height = 1, volumes = ramp2_volumes, rails = {
         {{-0.499, 0.999, -0.499}, {-0.499, 0.999, 0.499}},
         {{-0.499, 0.999, 0.499}, {0.499, 0, 0.499}},
         {{0.499, 0, 0.499}, {0.499, 0, -0.499}},

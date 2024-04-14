@@ -1,4 +1,3 @@
---TODO: remove preparing points, replace with precalc rotations and player pos offset
 --TODO: model data as strings
 --TODO: tricks as strings
 
@@ -8,22 +7,8 @@ scroll = {0,0}
 debugs = {}
 local is_editing = true
 SHOW_DEPTH = false
-LEVEL_BORDERS = {-16.9, 2, -9, 19.9}
+LEVEL_BORDERS = {-16.9, 1.9, -8.9, 19.9}
 
-
-function do_test()
-    local volumes = {
-        --{ pt = {-5, 0, 0}, normal = v_norm({1, 1, 0}), aabb = {-10, 10, -10, 10, -10, 10} },
-        --{ pt = {-4, 0, 0}, normal = v_norm({1, 1, 0}), aabb = {-10, 10, -10, 10, -10, 10} },
-        {{pt = {-2, 0, -2}, normal = v_norm({1, 0, 0})}},
-    }
-    printh("----- TEST 1 ------")
-    local pt, vel = collide_point_volumes({0,0,0}, {-10, 0, -10}, volumes)
-    printh("RESULT pt")
-    pv(pt)
-    printh("RESULT vel")
-    pv(vel)
-end
 edit_ent = {}
 
 function _init()
@@ -160,7 +145,7 @@ function _update()
         if (mb & 0b10) != 0 and not mbs[2] then
             editor_sel = (editor_sel % #tiles) + 1
         end
-        editor_elev = max(editor_elev + stat(36) / 2, 0)
+        editor_elev = mid(editor_elev + stat(36) / 2, 0, 15)
     end    
     mbs[1] = (mb & 0b01) != 0
     mbs[2] = (mb & 0b10) != 0      

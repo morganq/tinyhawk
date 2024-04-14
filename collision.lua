@@ -1,4 +1,7 @@
-ground_volume = {{pt={0,0,0}, normal={0,1,0}}}
+cached_blocks = {}
+cached_prefabs = {}
+
+ground_volume = {{{pt={0,0,0}, normal={0,1,0}}}, {0,0,0}}
 
 block_volumes = {
     {
@@ -7,7 +10,7 @@ block_volumes = {
         {pt = {0, 0, -0.5}, normal = {0, 0, -1}},
         {pt = {0, 0, 0.5},  normal = {0, 0, 1}},
         {pt = {0, 0.5, 0},  normal = {0, 1, 0}},
-        {pt = {0, 0, 0},  normal = {0, -1, 0}},
+        --{pt = {0, 0, 0},  normal = {0, -1, 0}},
     }
 }
 
@@ -17,7 +20,7 @@ ramp_volumes = {
         {pt = {0, 0, -0.5}, normal = {0, 0, -1}},
         {pt = {0, 0, 0.5},  normal = {0, 0, 1}},
         {pt = {0, 0.25, 0}, normal = v_norm({0.5, 1, 0})},
-        {pt = {0, 0, 0},  normal = {0, -1, 0}},
+        --{pt = {0, 0, 0},  normal = {0, -1, 0}},
     }
 }   
 
@@ -27,7 +30,7 @@ ramp2_volumes = {
         {pt = {0, 0, -0.5}, normal = {0, 0, -1}},
         {pt = {0, 0, 0.5},  normal = {0, 0, 1}},
         {pt = {0, 0.5, 0}, normal = v_norm({1, 1, 0})},
-        {pt = {0, 0, 0},  normal = {0, -1, 0}},
+        --{pt = {0, 0, 0},  normal = {0, -1, 0}},
     }
 }   
 
@@ -38,7 +41,7 @@ rail1_volumes = {
         {pt = {0, 0, -0.1}, normal = {0, 0, -1}},
         {pt = {0, 0, 0.1},  normal = {0, 0, 1}},
         {pt = {0, 0.5, 0},  normal = {0, 1, 0}},
-        {pt = {0, 0, 0},  normal = {0, -1, 0}},
+        --{pt = {0, 0, 0},  normal = {0, -1, 0}},
     }
 }
 
@@ -48,8 +51,8 @@ qp_volumes = {
         {pt = {-0.49, 0, 0}, normal = {1, 0, 0}},
         {pt = {0, 0, -0.5}, normal = {0, 0, -1}},
         {pt = {0, 0, 0.5},  normal = {0, 0, 1}},
-        {pt = {0, 0, 0},  normal = {0, -1, 0}},
         {pt = {0, 1, 0},  normal = {0, 1, 0}},
+        --{pt = {0, 0, 0},  normal = {0, -1, 0}},
     }
 }
 local steps = 4
@@ -68,6 +71,16 @@ for i = 0, steps + 1 do
             {pt = {0, 1, 0},  normal = {0, 1, 0}},
         }
     )
+end
+
+
+for i = 0.5, 15, 0.5 do
+    cached_blocks[i] = {}
+    for plane in all(block_volumes[1]) do
+        add(cached_blocks[i], {pt = v_copy(plane.pt), normal = v_copy(plane.normal)})
+    end
+    printh(cached_blocks[i][5])
+    cached_blocks[i][5].pt[2] += i - 0.5
 end
 
 function plane_segment(plane, pt, vel)
@@ -101,12 +114,14 @@ function find_first_collision(pt, vel, volumes)
         -- If we are that's a candidate volume and we record the closest plane and the t value            
     local nearest_volume, nearest_plane, nt = nil, nil, 999999
     local eps = 0.001
-    for volume in all(volumes) do
+    for vo in all(volumes) do
+        local volume, offset = unpack(vo)
+        local off_pt = v_sub(pt, offset)
         local still_inside = true
         for plane in all(volume) do
-            local t = plane_segment(plane, pt, vel)
+            local t = plane_segment(plane, off_pt, vel)
             if t != nil and t < nt then
-                local clipped_pt = v_add(pt, v_mul(vel, t + eps))
+                local clipped_pt = v_add(off_pt, v_mul(vel, t + eps))
                 if check_inside (clipped_pt, volume) then
                     nt = t
                     nearest_plane = plane
@@ -137,22 +152,12 @@ function rotate_aabb(v, fliph, flipv)
     return v
 end
 
-function prepare_volume(cell, v, is_elev_block)
+function prepare_prefab_volume(v, fliph, flipv)
     local planes = {}
-    -- OPT; Some stuff could be memoized, normal and pt rotations, but not offsets
     for p in all(v) do
-        local y_offset = cell.elev
-        if is_elev_block then
-            if p.normal[2] >= 1 then
-                y_offset = -0.5 + cell.elev
-            else
-                y_offset = 0
-            end
-        end
-        local offset = {cell.x + 0.5, y_offset, cell.z + 0.5}
         local new_plane = {
-            normal = rotate(p.normal, cell.fliph, cell.flipv),
-            pt = v_add(rotate(p.pt, cell.fliph, cell.flipv), offset),
+            normal = rotate(p.normal, fliph, flipv),
+            pt = rotate(p.pt, fliph, flipv),
         }
         add(planes, new_plane)
     end    
@@ -162,22 +167,23 @@ end
 function prepare_collision_volumes(cells)
     local volumes = {}
     for cell in all(cells) do
-        if #cell.prepared_volumes > 0 then
-            for v in all(cell.prepared_volumes) do
-                add(volumes, v)
+        local tt = cell.tiletype
+        if cell.elev > 0 then
+            local offset = {cell.x + 0.5, 0, cell.z + 0.5}
+            local v = cached_blocks[cell.elev]
+            add(volumes, {v, offset})
+        end
+        for i = 1, #tt.volumes do
+            local offset = {cell.x + 0.5, cell.elev, cell.z + 0.5}
+            local v = tt.volumes[i]
+            local key = tt.name .. "_" .. i .. "_" .. (cell.fliph and 1 or 0) .. (cell.flipv and 1 or 0)
+            local rv = cached_prefabs[key]
+            if not rv then
+                printh("caching " .. key)
+                rv = prepare_prefab_volume(v, cell.fliph, cell.flipv)
+                cached_prefabs[key] = rv
             end
-        else
-            local tt = cell.tiletype
-            if cell.elev > 0 then
-                local v = prepare_volume(cell, block_volumes[1], true)
-                --add(cell.prepared_volumes, v)
-                add(volumes, v)
-            end
-            for v in all(tt.volumes) do
-                local planes = prepare_volume(cell, v)
-                --add(cell.prepared_volumes, planes)
-                add(volumes, planes)
-            end
+            add(volumes, {rv, offset})
         end
     end
     return volumes
