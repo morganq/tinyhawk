@@ -1,29 +1,42 @@
 input_list = {}
-trick_inputs = {
-    l = "talonflip",
-    ll = "late talonflip",
-    r = "heelflip",
-    u = "shuvit",
-    d = "360 flip",
-    du = "hardflip",
-    ud = "manual",
-    --[[du = "impossible",
-    lr = "fs 360",
-    rl = "bs 360",
-    ]]
-}
+trick_inputs = {}
+tricks = {}
 
--- yaw pitch roll
-tricks = {
-    talonflip = {spins = {{0, 0, 360}}, time = 8, score = 100},
-    ["late talonflip"] = {spins = {{90, 0, 0}, {0, 0, 0}, {-90, 0, 0}}, time = 16, score = 400},
-    heelflip = {spins = {{0, 0, -360}}, time = 13, score = 150},
-    shuvit = {spins = {{-180, 0, 0}}, time = 8, score = 100},
-    ["360 flip"] = {spins = {{-360, 0, 360}}, time = 15, score = 200},
-    hardflip = {spins = {{-180, 0, 360}}, time = 15, score = 200},
-    grind = {score = 50, is_grind = true},
-    manual = {score = 10, is_manual = true},
-}
+-- name / input / time / score / ?grind / ?manual / *spins / holdspin / anim
+tricks_str = split([[
+talonflip/lz/8/100/f/f/0,0,360//
+heelflip/rz/12/150/f/f/0,0,-360//
+shuvit/uz/8/100/f/f/-180,0,0//
+360 flip/dz/15/200/f/f/-360,0,360//
+late talonflip/luz/16/400/f/f/90,0,0;0,0,0;-90,0,0//
+grind///50/t/f//90,0,0/208
+manual/ud//10/f/t//0,30,0/208
+]],"\n")
+
+
+function parse_trick(s)
+    local name, input, time, score, grind, manual, _spins, holdspin, anim = unpack(split(s, "/"))
+    holdspin = split(holdspin, ",")
+    _spins = split(_spins, ";")
+    spins = {}
+    for spin in all(_spins) do
+        if #spin > 0 then
+            add(spins, split(spin, ","))
+        end
+    end
+    if #spins == 0 then spins = nil end
+    if #holdspin != 3 then holdspin = nil end
+    grind = grind == "t"
+    manual = manual == "t"
+    if input then
+        trick_inputs[input] = name
+    end
+    tricks[name] = {spins=spins, holdspin=holdspin, anim=tonum(anim), time=time, score=score, is_manual=manual, is_grind=grind}
+end
+
+for i = 1, #tricks_str - 1 do
+    parse_trick(tricks_str[i])
+end
 
 function add_input(k)
     add(input_list, {key = k, time = time})
@@ -34,6 +47,8 @@ function update_inputs()
     if btnp(1) then add_input("r") end
     if btnp(2) then add_input("u") end
     if btnp(3) then add_input("d") end
+    if btnp(4) then add_input("z") end
+    if btnp(5) then add_input("x") end
     while #input_list > 0 and time > input_list[1].time + 11 do
         deli(input_list, 1)
     end

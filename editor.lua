@@ -23,7 +23,6 @@ function _init()
     add(all_entities, skater)
     add(all_entities, skater.shadow)
     add(all_entities, edit_ent)
-    do_test()
 end
 
 time = 0
@@ -76,10 +75,11 @@ function _update()
             skater:jump()
         end
         if btnp(4) then
-            skater:trick()
+            
         elseif btn(4) then
             skater:hold_grind()
         end
+        skater:trick()
         local sp = v2p(skater.pos)
         if abs(sp[1] - 64) > 6 then
             scroll[1] = (64 - sp[1]) * 0.1 + scroll[1] * 0.9
@@ -208,7 +208,7 @@ function _draw()
     draw_inputs(2, 2)
     draw_combo()
     --pal(split"1,2,3,4,5,143,7,8,9,10,11,12,128,14,15,0",1)
-    pal(split"1,2,10,4,140,15,7,8,9,10,11,12,140,14,134,0",1)
+    pal(split"1,2,3,4,140,15,7,8,9,10,11,12,140,14,134,0",1)
 end
 
 function save()

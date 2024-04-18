@@ -1,5 +1,6 @@
 STEP = 0.2
 FRICTION = 0.0012
+DEG2RAD = 3.14159 / 180
 
 function make_skater()
     local e = {
@@ -33,19 +34,20 @@ function make_skater()
         draw = function(self)
             local skate_fwd = v_norm({self.fwd[1], self.fwd[2], self.fwd[3]})
             local spin = {0,0,0}
-            if self.current_trick then
-                if self.current_trick.spins then
-                    local tt = min(self.current_trick_t / self.current_trick.time, 0.999)
-                    local tspins = self.current_trick.spins
+            local ct = self.current_trick
+            if ct then
+                if ct.spins then
+                    local tt = min(self.current_trick_t / ct.time, 0.999)
+                    local tspins = ct.spins
                     local spindex = (tt * #tspins) \ 1 + 1
                     for i = 1, spindex - 1 do
-                        spin = v_add(spin, v_mul(tspins[i], 3.14159 / 180))
+                        spin = v_add(spin, v_mul(tspins[i], DEG2RAD))
                     end
                     local stt = tt * #tspins % 1
-                    spin = v_add(spin, v_mul(tspins[spindex], stt * 3.14159 / 180))
+                    spin = v_add(spin, v_mul(tspins[spindex], stt * DEG2RAD))
                 end
-                if self.current_trick.is_manual then
-                    spin[2] = 3.14159 / 4
+                if ct.holdspin then
+                    spin = v_mul(ct.holdspin, DEG2RAD)
                 end
                 if spin[1] != 0 then --yaw
                     local cyaw = atan2(skate_fwd[1], skate_fwd[3])
@@ -70,8 +72,8 @@ function make_skater()
             local l1, l2 = v_add(self.pos, v_mul(nv, 0.5)), v_add(self.pos, v_mul(nv, 1.5))
             local p1 = v2p(l1)
             local p2 = v2p(l2)
-            local p3 = v2p(v_add(v_add(self.pos, v_mul(nv, 1.0)), {nv[3] * 0.25, 0, nv[1] * -0.25}))
-            local p4 = v2p(v_add(v_add(self.pos, v_mul(nv, 1.0)), {nv[3] * -0.25, 0, nv[1] * 0.25}))
+            local p3 = v2p(v_add(v_add(self.pos, v_mul(nv, 1.25)), {nv[3] * 0.25, 0, nv[1] * -0.25}))
+            local p4 = v2p(v_add(v_add(self.pos, v_mul(nv, 1.25)), {nv[3] * -0.25, 0, nv[1] * 0.25}))
             line(p1[1], p1[2], p2[1], p2[2], 11)--self.switch and 11 or 12)
             line(p2[1], p2[2], p3[1], p3[2], 11)--self.switch and 11 or 12)
             line(p2[1], p2[2], p4[1], p4[2], 11)--self.switch and 11 or 12)
@@ -99,9 +101,13 @@ function make_skater()
                 p = v2p({self.pos[1], self.char_y, self.pos[3]})
                 flip = (self.fwd[1] - self.fwd[3]) > 0
                 if self.switch then flip = not flip end
-                frame = 192 + (self.airborne_frames + 3) \ 4
-                if frame >= 197 then
-                    frame = 195 + (frame-1) % 2
+                if ct and ct.anim then
+                    frame = ct.anim
+                else
+                    frame = 192 + (self.airborne_frames + 3) \ 4
+                    if frame >= 197 then
+                        frame = 195 + (frame-1) % 2
+                    end
                 end
             end
             spr(frame, p[1] - 4, p[2] - 8, 1, 1, flip)            
@@ -115,9 +121,9 @@ function make_skater()
                 self.rotvel = 0
                 return
             end
-            self.rotvel = mid(self.rotvel + turn * 0.2, -.15, .15)
+            self.rotvel = mid(self.rotvel + turn * 0.02, -.12, .12)
             if turn == 0 then
-                self.rotvel *= 0.8
+                self.rotvel *= 0.7
             end
             local fwd_angle = atan2(self.flat_fwd[1], self.flat_fwd[3])
             local new_angle = fwd_angle + self.rotvel
@@ -125,6 +131,9 @@ function make_skater()
             local speed = v_mag(flat_vel)         
             self.flat_fwd = {cos(new_angle), 0, sin(new_angle)}            
             if self.airborne then
+                if self.current_trick and self.current_trick.is_grind then
+                    self.current_trick = nil
+                end
                 if fb == 1 then
                     local new_vel = {cos(new_angle), self.vel[2], sin(new_angle)}
                     local speed_fwd = v_dot(self.flat_fwd, flat_vel)
@@ -147,7 +156,7 @@ function make_skater()
                     self.switch = false
                 else
                     if not self.in_manual then
-                        local in_trick = self.current_trick != nil and not self.current_trick.is_manual and self.current_trick_t < self.current_trick.time - 2
+                        local in_trick = self.current_trick != nil and not self.current_trick.is_manual and not self.current_trick.is_grind and self.current_trick_t < self.current_trick.time - 2
                         end_combo(in_trick)
                         if in_trick then
                             self:fall()
@@ -334,7 +343,7 @@ function make_skater()
                 self.current_trick_t += 1
                 if self.current_trick.is_manual and not self.in_manual then
                     self.current_trick = nil
-                elseif not self.current_trick.is_manual and self.current_trick_t > self.current_trick.time then
+                elseif not self.current_trick.is_manual and not self.current_trick.is_grind and self.current_trick_t > self.current_trick.time then
                     self.current_trick = nil
                 end
             end
@@ -368,7 +377,7 @@ function make_skater()
                 end
             end
             if self.current_trick == nil then
-                self:lock_grind(0.03)
+            --    self:lock_grind(0.03)
             end
         end,
         hold_grind = function(self)
@@ -395,6 +404,7 @@ function make_skater()
                 if speedup > 0 then
                     add_combo("grind")
                 end
+                self.current_trick = tricks['grind']
             end            
         end,
         get_best_grind = function(self)

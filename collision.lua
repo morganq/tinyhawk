@@ -79,7 +79,6 @@ for i = 0.5, 15, 0.5 do
     for plane in all(block_volumes[1]) do
         add(cached_blocks[i], {pt = v_copy(plane.pt), normal = v_copy(plane.normal)})
     end
-    printh(cached_blocks[i][5])
     cached_blocks[i][5].pt[2] += i - 0.5
 end
 

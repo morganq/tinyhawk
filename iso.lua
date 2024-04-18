@@ -1,12 +1,7 @@
---[[pal_bl = split"13,2,3,4,5,6,15,8,9,10,11,6,13,14,15"
-pal_br = split"5,2,3,4,13,6,15,8,9,10,11,6,13,14,15"
-pal_tl = split"13,2,3,4,5,6,15,8,9,10,11,6,13,14,15"
-pal_tr = split"5,2,3,4,13,6,15,8,9,10,11,5,13,14,15"
-]]
-pal_bl = split"1,5,3,4,5,6,15,13,6,15,11,12,13,14,6,0"
-pal_br = split"5,13,3,4,1,13,15,6,15,15,11,12,5,14,6,0"
-pal_tl = split"1,5,3,4,5,6,15,13,6,15,11,12,13,14,6,0"
-pal_tr = split"5,13,3,4,1,13,15,6,15,15,11,12,5,14,6,0"
+pal_bl = split"1,5,3,4,5,6,15,13,6,10,11,12,13,14,6,0"
+pal_br = split"5,13,3,4,1,13,15,6,15,10,11,12,5,14,6,0"
+pal_tl = split"1,5,3,4,5,6,15,13,6,10,11,12,13,14,6,0"
+pal_tr = split"5,13,3,4,1,13,15,6,15,10,11,12,5,14,6,0"
 isopals = {
     {pal_bl, pal_br},
     {pal_tl, pal_tr}
@@ -23,10 +18,10 @@ function isospr(s, v, h, elev, fliph, flipv, draw_elev_left, draw_elev_right, br
     spr(s, x1, y1, 2, h + 1, fliph)
     pal()
     if bright_left then
-        spr(64, x1, y1, 1, 1)
+        spr(64, x1, y1)
     end
     if bright_right then
-        spr(66, x1 + 8, y1, 1, 1)
+        spr(65, x1 + 8, y1)
     end
     if elev > 0 then
         local elev8 = 8 * elev
