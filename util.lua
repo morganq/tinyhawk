@@ -106,4 +106,17 @@ function tostring(any)
       str=str..tostring(k).."="..tostring(v)
     end
     return str.."}"
-  end
+end
+
+function load(s)
+    for t in all(split(s, ";")) do
+        local parts = split(t, ",")
+        if parts then
+            add_map_tile(parts[1], parts[2], parts[4], parts[3], parts[5] == 1, parts[6] == 1)
+        end
+    end
+    fix_grinds()
+    is_editing = false
+    del(all_entities, edit_ent)
+    --sort_ents()   
+end

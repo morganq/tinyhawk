@@ -1,6 +1,7 @@
 input_list = {}
 trick_inputs = {}
 tricks = {}
+input_icons={l="⬅️", r="➡️", u="⬆️", d="⬇️",x="❎",z="🅾️"}
 
 -- name / input / time / score / ?grind / ?manual / *spins / holdspin / anim
 tricks_str = split([[
@@ -73,7 +74,7 @@ end
 
 function draw_inputs(x,y)
     for i in all(input_list) do
-        print(i.key, x, y, 12)
+        print(input_icons[i.key], x, y, 0)
         x += 8
     end
 end

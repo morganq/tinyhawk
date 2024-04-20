@@ -7,21 +7,19 @@ isopals = {
     {pal_tl, pal_tr}
 }
 
-function isospr(s, v, h, elev, fliph, flipv, draw_elev_left, draw_elev_right, bright_left, bright_right)
+function isospr(s1, s2, v, h, elev, fliph, flipv, draw_elev_left, draw_elev_right, brights)
     elev = elev or 0
     local p = v2p(v)
     local x1, y1, y2 = p[1] - 8, p[2] - h * 8 - elev * 8, p[2] + 4 - elev * 8
     pal(isopals[flipv and 2 or 1][fliph and 2 or 1])
+    local s = s1
     if flipv then
-        s += 2
+        s = s2
     end
     spr(s, x1, y1, 2, h + 1, fliph)
     pal()
-    if bright_left then
-        spr(64, x1, y1)
-    end
-    if bright_right then
-        spr(65, x1 + 8, y1)
+    for bright in all(brights) do
+        spr(bright, x1, y1, 2, 1)
     end
     if elev > 0 then
         local elev8 = 8 * elev
@@ -47,35 +45,40 @@ end
 
 ------
 
+--name, sprite, height, volumes, is_block, is_qp, rails
+function parse_tile(s)
+    local name, s1,s2, height, volumes, is_block, is_qp, rails = unpack(split(s,"/"))
+    local t = {name=name,s1=s1,s2=s2,height=height,volumes=_ENV[volumes],is_block=is_block=="t",is_qp=is_qp=="t",rails={}}
+    for rail in all(split(rails,";")) do
+        local p1,p2,p3,p4,p5,p6 = unpack(split(rail,","))
+        add(t.rails, {{p1,p2,p3}, {p4,p5,p6}})
+    end
+    return t
+end
+
 tiles = {
-    {name="block", sprite = 2, height = 0.5, volumes = block_volumes, is_block = true, rails = {
-        {{-0.499, 0.499, -0.499}, {-0.499, 0.499, 0.499}},
-        {{-0.499, 0.499, 0.499}, {0.499, 0.499, 0.499}},
-        {{0.499, 0.499, 0.499}, {0.499, 0.499, -0.499}},
-        {{0.499, 0.499, -0.499}, {-0.499, 0.499, -0.499}},
-    }},
-    {name="ramp1", sprite = 6, height = 0.5, volumes = ramp_volumes, rails = {
+    parse_tile("block/2/2/0.5/block_volumes/t/f/-0.499, 0.499, -0.499,-0.499, 0.499, 0.499;-0.499, 0.499, 0.499,0.499, 0.499, 0.499;0.499, 0.499, 0.499,0.499, 0.499, -0.499;0.499, 0.499, -0.499,-0.499, 0.499, -0.499"),
+    parse_tile("ramp1/6/8/0.5/ramp_volumes/f/f/-0.499, 0.499, -0.499,-0.499, 0.499, 0.499;-0.499, 0.499, 0.499,0.499, 0, 0.499;0.499, 0, 0.499,0.499, 0, -0.499;0.499, 0, -0.499,-0.499, 0.499, -0.499"),
+    --[[{name="ramp1", sprite = 6, height = 0.5, volumes = ramp_volumes, rails = {
         {{-0.499, 0.499, -0.499}, {-0.499, 0.499, 0.499}},
         {{-0.499, 0.499, 0.499}, {0.499, 0, 0.499}},
         {{0.499, 0, 0.499}, {0.499, 0, -0.499}},
         {{0.499, 0, -0.499}, {-0.499, 0.499, -0.499}},
-    }},  
-    {name="qp", sprite = 10, height = 1, volumes = qp_volumes, is_qp = true, rails = {
-        {{-0.499, 0.999, -0.499}, {-0.499, 0.999, 0.499}},
-    }},
-    {name="rail1", sprite = 34, height = 0.5, volumes = rail1_volumes, rails = {
-        {{-0.499, 0.499, 0}, {0.499, 0.499, 0}},
-    }},    
-    {name="ramp2", sprite = 38, height = 1, volumes = ramp2_volumes, rails = {
-        {{-0.499, 0.999, -0.499}, {-0.499, 0.999, 0.499}},
-        {{-0.499, 0.999, 0.499}, {0.499, 0, 0.499}},
-        {{0.499, 0, 0.499}, {0.499, 0, -0.499}},
-        {{0.499, 0, -0.499}, {-0.499, 0.999, -0.499}},
-    }},
+    }}, ]] 
+    parse_tile("qp/10/12/1/qp_volumes/f/t/-0.499, 0.999, -0.499,-0.499, 0.999, 0.499"),
+    parse_tile("rail1/34/34/0.5/rail1_volumes/f/f/-0.499, 0.499, 0,0.499, 0.499, 0"),
+    parse_tile("ramp2/38/40/1/ramp2_volumes/f/f/-0.499,0.999,-0.499,-0.499,0.999,0.499;-0.499,0.999,0.499,0.499,0,0.499;0.499,0,0.499,0.499,0,-0.499;0.499,0,-0.499,-0.499,0.999,-0.499"),
+    parse_tile("rail2/42/42/0.5/rail2_volumes/f/f/-0.499, 0.499, 0.499,0.499, 0.499, 0.499"),
+    parse_tile("rail3/44/44/0.5/rail3_volumes/f/f/0.499, 0.499, -0.499,-0.499, 0.499, 0.499"),
+    parse_tile("rail4/46/46/0.5/rail4_volumes/f/f/0.499, 0.499, 0.499,-0.499, 0.499, -0.499"),
+    parse_tile("hblock1/4/4/1/hblock1_volumes/f/f/0.499, 0.999, -0.499,-0.499, 0.999, 0.499;-0.499,0.999,0.499,0.499,0.999,0.499;0.499,0.999,0.499,0.499,0.999,-0.499"),
+    parse_tile("hblock2/36/36/1/hblock2_volumes/f/f/0.499, 0.999, 0.499,-0.499, 0.999, -0.499;-0.499,0.999,-0.499,-0.499,0.999,0.499;-0.499,0.999,0.499,0.499,0.999,0.499"),
 }
 
+
+
 function make_cell(tile, x, z, elev, fliph, flipv)
-    return {tiletype = tile, x=x, z=z, elev = elev or 0, fliph = fliph or false, flipv = flipv or false, prepared_volumes = {}}
+    return {tiletype = tile, x=x, z=z, elev = elev or 0, fliph = fliph or false, flipv = flipv or false}
 end
 
 function get_cell(v)
@@ -104,9 +107,6 @@ end
 
 all_entities = {}
 
---.41
---.55
-
 function add_map_tile(x, z, ind, elev, fliph, flipv)
     elev = elev or 0
     if map[x] == nil then map[x] = {} end
@@ -123,18 +123,41 @@ function add_map_tile(x, z, ind, elev, fliph, flipv)
             center = {x + 0.5, 0, z + 0.5},
             depth = 0,
             cell = cell,
-            height = elev + 1,
-            bright_left = false,
-            bright_right = false, 
+            height = elev + 0.5 + tile.height,
+            brights = {},
             draw = function(self)
                 -- memo
                 local l = not(map[x + 1] and map[x + 1][z] and map[x + 1][z].elev >= elev)
                 local r = not(map[x] and map[x][z + 1] and map[x][z + 1].elev >= elev)
-                
                 isospr(
-                    cell.tiletype.sprite, {x,0,z},
-                    cell.tiletype.height, cell.elev,
-                    cell.fliph, cell.flipv, l, r, self.bright_left, self.bright_right)                    
+                    tile.s1, tile.s2, {x,0,z},
+                    tile.height, cell.elev,
+                    cell.fliph, cell.flipv, l, r, self.brights)    
+                
+                --[[
+                -- Draw rails
+                for rail in all(self.cell.rails) do
+                    local p1, p2 = v2p(rail[1]), v2p(rail[2])
+                    line(p1[1], p1[2], p2[1], p2[2], 8)
+                end
+                
+                
+                -- Draw planes
+                local offset = {x + 0.5, elev, z + 0.5}
+                for i = 1, #tile.volumes do
+                    local key = tile.name .. "_" .. i .. "_" .. (cell.fliph and 1 or 0) .. (cell.flipv and 1 or 0)
+                    local vol = cached_prefabs[key]
+                    local n = 0
+                    for plane in all(vol) do
+                        local p = v_add(plane.pt, offset)
+                        local p1 = v2p(p)
+                        local p2 = v2p(v_add(p, plane.normal))
+                        line(p1[1], p1[2], p2[1], p2[2], 11 + n % 3)
+                        n += 1
+                    end
+                end
+                ]]
+                
             end
         }
         e.depth = get_depth(e)
@@ -202,13 +225,6 @@ function render_iso_entities(entities)
     for ent in all(all_entities) do
         if not ent.cell or (ent.cell.x >= x1 and ent.cell.z >= z1 and ent.cell.x <= x2 and ent.cell.z <= z2) then
             ent:draw()
-            if SHOW_DEPTH and ent.depth then
-                add(debugs, function()
-                    local v = v2p(ent.center)
-                    local d = sub(tostr(ent.depth), 0, 3)
-                    print(d, v[1] - 4, v[2] - 2, 0)
-                end)
-            end
         end
     end 
     if skater.grind_line then
@@ -218,18 +234,6 @@ function render_iso_entities(entities)
     fillp(0b1010010110100101.11)
     skater:draw()
     fillp()
-end
-
-function debug_tile(v, c)
-    local p = v2p({v[1]\1,v[2]\1,v[3]\1})
-    local x, y = p[1] - 9, p[2] + 4
-    add(debugs, function()
-        line(x,y,x + 8,y - 4, c or 8)
-        line(x + 17,y)
-        line(x+8,y+4)
-        line(x+1,y)
-        line(x,y,x,y + v[2]\1 * 8)
-    end)
 end
 
 function draw_v(v, ox, oy, c)
@@ -247,18 +251,19 @@ end
 function fix_brights()
     for x, zs in pairs(map) do
         for z, cell in pairs(zs) do
-            cell.ent.bright_left = false
-            cell.ent.bright_right = false
+            cell.ent.brights = {}
             if cell.tiletype.is_block then
                 local left = get_cell({x, 0, z - 1})
                 local right = get_cell({x - 1, 0, z})
-                if not left or left.ent.height <= cell.ent.height - 0.5 then
-                    cell.ent.bright_left = true
+                if not left or left.ent.height <= cell.ent.height - 0.1 then
+                    add(cell.ent.brights, 64)
                 end
-                if not right or right.ent.height <= cell.ent.height - 0.5 then
-                    cell.ent.bright_right = true
+                if not right or right.ent.height <= cell.ent.height - 0.1 then
+                    add(cell.ent.brights, 65)
                 end            
             end
+            if (cell.tiletype.name == "hblock1") add(cell.ent.brights, 67)
+            --if (cell.tiletype.name == "hblock2") add(cell.ent.brights, 69)
         end
     end    
 end
@@ -276,13 +281,18 @@ function fix_grinds()
                 local center = v_mul(v_add(rail[1], rail[2]), 0.5)
                 local delta = v_sub(rail[2], rail[1])
                 local rf = v_norm(delta)
-                local side = v_mul(v_cross(rf, {0,1,0}), 0.125)
-                local test1 = v_add(center, side)
-                test1[2] += 20
-                local test2 = v_sub(center, side)
-                test2[2] += 20
-                local res1 = find_first_collision(test1, {0, -20.125, 0}, volumes)
-                local res2 = find_first_collision(test2, {0, -20.125, 0}, volumes)
+                local side = v_mul(v_cross(rf, {0,1,0}), 0.25)
+                local test1 = {center[1] + side[1], center[2] + side[2] - 0.125, center[3] + side[3]}
+                local test2 = {center[1] - side[1], center[2] - side[2] - 0.125, center[3] - side[3]}
+                local res1, res2 = false, false
+                for vol in all(volumes) do
+                    local volume, offset = unpack(vol)
+                    if check_inside(v_sub(test1, offset), volume) then res1 = true; break end
+                end
+                for vol in all(volumes) do
+                    local volume, offset = unpack(vol)
+                    if check_inside(v_sub(test2, offset), volume) then res2 = true; break end
+                end                
                 if res1 and res2 then
                     del(cell.rails, rail)
                 end

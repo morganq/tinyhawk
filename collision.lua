@@ -1,76 +1,36 @@
 cached_blocks = {}
 cached_prefabs = {}
+function parse_volume(s)
+    local v = {}
+    for plane in all(split(s,";")) do
+        local p1,p2,p3,n1,n2,n3 = unpack(split(plane,","))
+        add(v, {pt = {p1,p2,p3}, normal = {n1,n2,n3}})
+    end
+    return v
+end
 
 ground_volume = {{{pt={0,0,0}, normal={0,1,0}}}, {0,0,0}}
 
-block_volumes = {
-    {
-        {pt = {-0.5, 0, 0}, normal = {-1, 0, 0}},
-        {pt = {0.5, 0, 0},  normal = {1, 0, 0}},
-        {pt = {0, 0, -0.5}, normal = {0, 0, -1}},
-        {pt = {0, 0, 0.5},  normal = {0, 0, 1}},
-        {pt = {0, 0.5, 0},  normal = {0, 1, 0}},
-        --{pt = {0, 0, 0},  normal = {0, -1, 0}},
-    }
-}
-
-ramp_volumes = {
-    {
-        {pt = {-0.5, 0, 0}, normal = {-1, 0, 0}},
-        {pt = {0, 0, -0.5}, normal = {0, 0, -1}},
-        {pt = {0, 0, 0.5},  normal = {0, 0, 1}},
-        {pt = {0, 0.25, 0}, normal = v_norm({0.5, 1, 0})},
-        --{pt = {0, 0, 0},  normal = {0, -1, 0}},
-    }
-}   
-
-ramp2_volumes = {
-    {
-        {pt = {-0.5, 0, 0}, normal = {-1, 0, 0}},
-        {pt = {0, 0, -0.5}, normal = {0, 0, -1}},
-        {pt = {0, 0, 0.5},  normal = {0, 0, 1}},
-        {pt = {0, 0.5, 0}, normal = v_norm({1, 1, 0})},
-        --{pt = {0, 0, 0},  normal = {0, -1, 0}},
-    }
-}   
-
-rail1_volumes = {
-    {
-        {pt = {-0.5, 0, 0}, normal = {-1, 0, 0}},
-        {pt = {0.5, 0, 0},  normal = {1, 0, 0}},
-        {pt = {0, 0, -0.1}, normal = {0, 0, -1}},
-        {pt = {0, 0, 0.1},  normal = {0, 0, 1}},
-        {pt = {0, 0.5, 0},  normal = {0, 1, 0}},
-        --{pt = {0, 0, 0},  normal = {0, -1, 0}},
-    }
-}
-
-qp_volumes = {
-    {
-        {pt = {-0.5, 0, 0}, normal = {-1, 0, 0}},
-        {pt = {-0.49, 0, 0}, normal = {1, 0, 0}},
-        {pt = {0, 0, -0.5}, normal = {0, 0, -1}},
-        {pt = {0, 0, 0.5},  normal = {0, 0, 1}},
-        {pt = {0, 1, 0},  normal = {0, 1, 0}},
-        --{pt = {0, 0, 0},  normal = {0, -1, 0}},
-    }
-}
+block_volumes = {parse_volume("-0.5,0,0,-1,0,0;0.5,0,0,1,0,0;0,0,-0.5,0,0,-1;0,0,0.5,0,0,1;0,0.5,0,0,1,0")}
+hblock1_volumes = {parse_volume("0,0,0,-.7071,0,-.7071;0.5,0,0,1,0,0;0,0,0.5,0,0,1;0,1,0,0,1,0")}
+hblock2_volumes = {parse_volume("0,0,0,.7071,0,-.7071;-0.5,0,0,-1,0,0;0,0,0.5,0,0,1;0,1,0,0,1,0")}
+ramp_volumes = {parse_volume("-0.5, 0, 0,-1, 0, 0;0, 0, -0.5,0, 0, -1;0, 0, 0.5,0, 0, 1;0, 0.25, 0,0.4472,0.8944,0")}   
+ramp2_volumes = {parse_volume("-0.5, 0, 0,-1, 0, 0;0, 0, -0.5,0, 0, -1;0, 0, 0.5,0, 0, 1;0, 0.5, 0,0.7071,0.7071,0")}
+rail1_volumes = {parse_volume("-0.5, 0, 0,-1, 0, 0;0.5, 0, 0,1, 0, 0;0, 0, -0.1,0, 0, -1;0, 0, 0.1,0, 0, 1;0, 0.5, 0,0, 1, 0")}
+rail2_volumes = {parse_volume("-0.5, 0, 0,-1, 0, 0;0.5, 0, 0,1, 0, 0;0, 0, 0.4,0, 0, -1;0, 0, 0.5,0, 0, 1;0, 0.5, 0,0, 1, 0")}
+rail3_volumes = {parse_volume("-0.5, 0, 0.5,-.7071, 0, .7071;0.5, 0, -0.5,0.7071, 0, -0.7071;-0.1, 0, -0.1,-.7071, 0, -.7071;0.1, 0, 0.1,.7071, 0, .7071;0, 0.5, 0,0, 1, 0")}
+rail4_volumes = {parse_volume("-0.1, 0, 0.1,-.7071, 0, .7071;0.1, 0, -0.1,0.7071, 0, -0.7071;-0.5, 0, -0.5,-.7071, 0, -.7071;0.5, 0, 0.5,.7071, 0, .7071;0, 0.5, 0,0, 1, 0")}
+qp_volumes = {parse_volume("-0.5, 0, 0,-1, 0, 0;-0.49, 0, 0,1, 0, 0;0, 0, -0.5,0, 0, -1;0, 0, 0.5,0, 0, 1;0, 1, 0,0, 1, 0")}
+        
 local steps = 4
 local stepsize = 1 / (steps + 1) * 3.14159 / 2
 for i = 0, steps + 1 do
     local angle = i * stepsize
     local y = cos(angle)
     local x = sin(angle)
-    add(qp_volumes,
-        {
-            {pt = {0.49 - x * 0.97, (1-y) * 0.99, 0}, normal = v_norm({x, y, 0})},
-            {pt = {0, 0, -0.5}, normal = {0, 0, -1}},
-            {pt = {0, 0, 0.5},  normal = {0, 0, 1}},      
-            {pt = {-0.5, 0, 0}, normal = {-1, 0, 0}},  
-            {pt = {0, 0, 0},  normal = {0, -1, 0}},
-            {pt = {0, 1, 0},  normal = {0, 1, 0}},
-        }
-    )
+    local v = parse_volume("-0.5,0,0,-1,0,0;0,0,-0.5,0,0,-1;0,0,0.5,0,0,1;0,1,0,0,1,0;0,0,0,0,-1,0")
+    add(v, {pt = {0.49 - x * 0.97, (1-y) * 0.99, 0}, normal = v_norm({x, y, 0})})
+    add(qp_volumes, v)
 end
 
 
@@ -85,7 +45,6 @@ end
 function plane_segment(plane, pt, vel)
     local delta = v_sub(v_add(pt, vel), plane.pt)
     local dot = v_dot(delta, plane.normal)
-    --printh("dot=" .. dot)
     if dot < 0 then -- normal and delta are facing opposite directions
         local vel_proj = abs(v_dot(vel, plane.normal))
         local overlap_proj = abs(v_dot(delta, plane.normal))
@@ -141,15 +100,6 @@ function rotate(v, fliph, flipv)
     end
     return v
 end
-function rotate_aabb(v, fliph, flipv)
-    if flipv then
-        v = {0.5 - (v[2] - 0.5), 0.5 - (v[1] - 0.5), v[3], v[4], v[5], v[6]}
-    end    
-    if fliph then
-        v = {v[5], v[6], v[3], v[4], v[1], v[2]}
-    end    
-    return v
-end
 
 function prepare_prefab_volume(v, fliph, flipv)
     local planes = {}
@@ -199,7 +149,6 @@ function find_ground(pt, volumes)
         end
     end
     return {pt[1], 0, pt[3]}
-    
 end
 
 function collide_point_volumes(pt, vel, volumes)

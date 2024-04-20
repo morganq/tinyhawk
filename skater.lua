@@ -74,9 +74,9 @@ function make_skater()
             local p2 = v2p(l2)
             local p3 = v2p(v_add(v_add(self.pos, v_mul(nv, 1.25)), {nv[3] * 0.25, 0, nv[1] * -0.25}))
             local p4 = v2p(v_add(v_add(self.pos, v_mul(nv, 1.25)), {nv[3] * -0.25, 0, nv[1] * 0.25}))
-            line(p1[1], p1[2], p2[1], p2[2], 11)--self.switch and 11 or 12)
-            line(p2[1], p2[2], p3[1], p3[2], 11)--self.switch and 11 or 12)
-            line(p2[1], p2[2], p4[1], p4[2], 11)--self.switch and 11 or 12)
+            line(p1[1], p1[2], p2[1], p2[2], 11)
+            line(p2[1], p2[2], p3[1], p3[2], 11)
+            line(p2[1], p2[2], p4[1], p4[2], 11)
 
             local p, flip, frame = nil, false, 192
             if self.fall_timer > 0 then
