@@ -1,3 +1,5 @@
+map = {}
+
 pal_bl = split"1,5,3,4,5,6,15,13,6,10,11,12,13,14,6,0"
 pal_br = split"5,13,3,4,1,13,15,6,15,10,11,12,5,14,6,0"
 pal_tl = split"1,5,3,4,5,6,15,13,6,10,11,12,13,14,6,0"
@@ -43,40 +45,6 @@ function isospr(s1, s2, v, h, elev, fliph, flipv, draw_elev_left, draw_elev_righ
     
 end
 
-------
-
---name, sprite, height, volumes, is_block, is_qp, rails
-function parse_tile(s)
-    local name, s1,s2, height, volumes, is_block, is_qp, rails = unpack(split(s,"/"))
-    local t = {name=name,s1=s1,s2=s2,height=height,volumes=_ENV[volumes],is_block=is_block=="t",is_qp=is_qp=="t",rails={}}
-    for rail in all(split(rails,";")) do
-        local p1,p2,p3,p4,p5,p6 = unpack(split(rail,","))
-        add(t.rails, {{p1,p2,p3}, {p4,p5,p6}})
-    end
-    return t
-end
-
-tiles = {
-    parse_tile("block/2/2/0.5/block_volumes/t/f/-0.499, 0.499, -0.499,-0.499, 0.499, 0.499;-0.499, 0.499, 0.499,0.499, 0.499, 0.499;0.499, 0.499, 0.499,0.499, 0.499, -0.499;0.499, 0.499, -0.499,-0.499, 0.499, -0.499"),
-    parse_tile("ramp1/6/8/0.5/ramp_volumes/f/f/-0.499, 0.499, -0.499,-0.499, 0.499, 0.499;-0.499, 0.499, 0.499,0.499, 0, 0.499;0.499, 0, 0.499,0.499, 0, -0.499;0.499, 0, -0.499,-0.499, 0.499, -0.499"),
-    --[[{name="ramp1", sprite = 6, height = 0.5, volumes = ramp_volumes, rails = {
-        {{-0.499, 0.499, -0.499}, {-0.499, 0.499, 0.499}},
-        {{-0.499, 0.499, 0.499}, {0.499, 0, 0.499}},
-        {{0.499, 0, 0.499}, {0.499, 0, -0.499}},
-        {{0.499, 0, -0.499}, {-0.499, 0.499, -0.499}},
-    }}, ]] 
-    parse_tile("qp/10/12/1/qp_volumes/f/t/-0.499, 0.999, -0.499,-0.499, 0.999, 0.499"),
-    parse_tile("rail1/34/34/0.5/rail1_volumes/f/f/-0.499, 0.499, 0,0.499, 0.499, 0"),
-    parse_tile("ramp2/38/40/1/ramp2_volumes/f/f/-0.499,0.999,-0.499,-0.499,0.999,0.499;-0.499,0.999,0.499,0.499,0,0.499;0.499,0,0.499,0.499,0,-0.499;0.499,0,-0.499,-0.499,0.999,-0.499"),
-    parse_tile("rail2/42/42/0.5/rail2_volumes/f/f/-0.499, 0.499, 0.499,0.499, 0.499, 0.499"),
-    parse_tile("rail3/44/44/0.5/rail3_volumes/f/f/0.499, 0.499, -0.499,-0.499, 0.499, 0.499"),
-    parse_tile("rail4/46/46/0.5/rail4_volumes/f/f/0.499, 0.499, 0.499,-0.499, 0.499, -0.499"),
-    parse_tile("hblock1/4/4/1/hblock1_volumes/f/f/0.499, 0.999, -0.499,-0.499, 0.999, 0.499;-0.499,0.999,0.499,0.499,0.999,0.499;0.499,0.999,0.499,0.499,0.999,-0.499"),
-    parse_tile("hblock2/36/36/1/hblock2_volumes/f/f/0.499, 0.999, 0.499,-0.499, 0.999, -0.499;-0.499,0.999,-0.499,-0.499,0.999,0.499;-0.499,0.999,0.499,0.499,0.999,0.499"),
-}
-
-
-
 function make_cell(tile, x, z, elev, fliph, flipv)
     return {tiletype = tile, x=x, z=z, elev = elev or 0, fliph = fliph or false, flipv = flipv or false}
 end
@@ -88,26 +56,10 @@ function get_cell(v)
     end
 end
 
-map = {}
-
-local rendersize = 24
-
-function render_grid(x, z)
-    for i = x, x + rendersize do
-        local p1 = v2p({i, 0, z})
-        local p2 = v2p({i, 0, z + rendersize})
-        line(p1[1], p1[2], p2[1], p2[2], 6)
-    end
-    for i = z, z + rendersize do
-        local p1 = v2p({x, 0, i})
-        local p2 = v2p({x + rendersize, 0, i})
-        line(p1[1]-1, p1[2], p2[1]-1, p2[2], 6)        
-    end    
-end
 
 all_entities = {}
 
-function add_map_tile(x, z, ind, elev, fliph, flipv)
+function add_map_tile(x, z, ind, elev, fliph, flipv, special)
     elev = elev or 0
     if map[x] == nil then map[x] = {} end
     if map[x][z] then
@@ -118,6 +70,7 @@ function add_map_tile(x, z, ind, elev, fliph, flipv)
     if not map[x][z] then
         local tile = tiles[ind]   
         local cell = make_cell(tile, x, z, elev, fliph, flipv)
+        cell.special = special and special > 0 and special
         local e = {
             pos = {x,0,z},
             center = {x + 0.5, 0, z + 0.5},
@@ -173,28 +126,18 @@ function add_map_tile(x, z, ind, elev, fliph, flipv)
             local r2 = rotate(rail[2], cell.fliph, cell.flipv)
             add(e.cell.rails, {v_add(r1, rail_offset), v_add(r2, rail_offset)})
         end
-        
+        return cell    
     end
+    
 end
 
 function get_depth(a)
-    if a.depth_point then
-        return a.depth_point[1] + a.depth_point[2] + a.depth_point[3]
-    else
-        return a.center[1] + a.center[2] + a.center[3]
-    end
+    if (a.depth_point) return a.depth_point[1] + a.depth_point[2] + a.depth_point[3]
+    return a.center[1] + a.center[2] + a.center[3]
 end
 function axissort(a, b)
     local d = v_sub(a.center, b.center)
-    if abs(d[2]) >= a.height / 2 + b.height / 2 then
-        return d[2] > 0
-    end
-    --[[if abs(d[1]) >= 1 then
-        return d[1] > 0
-    end
-    if abs(d[3]) >= 1 then
-        return d[3] > 0
-    end ]]   
+    if (abs(d[2]) >= a.height / 2 + b.height / 2) return d[2] > 0
     return get_depth(a) > get_depth(b)
 end
 
@@ -211,29 +154,29 @@ function presort_cells()
     end)
 end
 
-function render_iso_entities(entities)
+function render_iso_entities(rendersize, use_skater)
     local v = p2vi({64, 64})
     local x1, x2 = v[1] - rendersize \ 2, v[1] + rendersize \ 2
     local z1, z2 = v[3] - rendersize \ 2, v[3] + rendersize \ 2
-    
+
     -- can opt with deli if needed
-    del(all_entities, skater)
-    del(all_entities, skater.shadow)
-    insert_cmp(all_entities, skater, function(a,b) return a.depth > b.depth end)
-    insert_cmp(all_entities, skater.shadow, function(a,b) return a.depth > b.depth end)
+    if use_skater then
+        del(all_entities, skater)
+        del(all_entities, skater.shadow)
+        insert_cmp(all_entities, skater, function(a,b) return a.depth > b.depth end)
+        insert_cmp(all_entities, skater.shadow, function(a,b) return a.depth > b.depth end)
+    end
 
     for ent in all(all_entities) do
         if not ent.cell or (ent.cell.x >= x1 and ent.cell.z >= z1 and ent.cell.x <= x2 and ent.cell.z <= z2) then
             ent:draw()
         end
     end 
-    if skater.grind_line then
-        local p1, p2 = v2p(skater.grind_line[1]), v2p(skater.grind_line[2])
-        line(p1[1], p1[2], p2[1], p2[2], 10)        
+    if use_skater then
+        fillp(0b1010010110100101.11)
+        skater:draw()
+        fillp()
     end
-    fillp(0b1010010110100101.11)
-    skater:draw()
-    fillp()
 end
 
 function draw_v(v, ox, oy, c)
@@ -241,11 +184,6 @@ function draw_v(v, ox, oy, c)
     local o2 = v2p({0,0,0})
     local dx, dy = o1[1] - o2[1], o1[2] - o2[2]
     line(ox, oy, ox + dx, oy + dy, c or 8)
-end
-
-function pset3d(v,c)
-    local o1 = v2p(v)
-    pset(o1[1], o1[2], c)
 end
 
 function fix_brights()
@@ -256,22 +194,19 @@ function fix_brights()
                 local left = get_cell({x, 0, z - 1})
                 local right = get_cell({x - 1, 0, z})
                 if not left or left.ent.height <= cell.ent.height - 0.1 then
-                    add(cell.ent.brights, 64)
+                    add(cell.ent.brights, 200)
                 end
                 if not right or right.ent.height <= cell.ent.height - 0.1 then
-                    add(cell.ent.brights, 65)
+                    add(cell.ent.brights, 201)
                 end            
             end
-            if (cell.tiletype.name == "hblock1") add(cell.ent.brights, 67)
+            if (cell.tiletype.name == "hblock1") add(cell.ent.brights, 203)
             --if (cell.tiletype.name == "hblock2") add(cell.ent.brights, 69)
         end
     end    
 end
 
 function fix_grinds()
-    cls(7)
-    print("loading", 50, 60, 0)
-    flip()
     for x, zs in pairs(map) do
         for z, cell in pairs(zs) do
             cell.prepared_planes = nil
@@ -293,9 +228,7 @@ function fix_grinds()
                     local volume, offset = unpack(vol)
                     if check_inside(v_sub(test2, offset), volume) then res2 = true; break end
                 end                
-                if res1 and res2 then
-                    del(cell.rails, rail)
-                end
+                if (res1 and res2) del(cell.rails, rail)
             end
         end
     end

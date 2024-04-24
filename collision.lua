@@ -1,27 +1,6 @@
 cached_blocks = {}
 cached_prefabs = {}
-function parse_volume(s)
-    local v = {}
-    for plane in all(split(s,";")) do
-        local p1,p2,p3,n1,n2,n3 = unpack(split(plane,","))
-        add(v, {pt = {p1,p2,p3}, normal = {n1,n2,n3}})
-    end
-    return v
-end
 
-ground_volume = {{{pt={0,0,0}, normal={0,1,0}}}, {0,0,0}}
-
-block_volumes = {parse_volume("-0.5,0,0,-1,0,0;0.5,0,0,1,0,0;0,0,-0.5,0,0,-1;0,0,0.5,0,0,1;0,0.5,0,0,1,0")}
-hblock1_volumes = {parse_volume("0,0,0,-.7071,0,-.7071;0.5,0,0,1,0,0;0,0,0.5,0,0,1;0,1,0,0,1,0")}
-hblock2_volumes = {parse_volume("0,0,0,.7071,0,-.7071;-0.5,0,0,-1,0,0;0,0,0.5,0,0,1;0,1,0,0,1,0")}
-ramp_volumes = {parse_volume("-0.5, 0, 0,-1, 0, 0;0, 0, -0.5,0, 0, -1;0, 0, 0.5,0, 0, 1;0, 0.25, 0,0.4472,0.8944,0")}   
-ramp2_volumes = {parse_volume("-0.5, 0, 0,-1, 0, 0;0, 0, -0.5,0, 0, -1;0, 0, 0.5,0, 0, 1;0, 0.5, 0,0.7071,0.7071,0")}
-rail1_volumes = {parse_volume("-0.5, 0, 0,-1, 0, 0;0.5, 0, 0,1, 0, 0;0, 0, -0.1,0, 0, -1;0, 0, 0.1,0, 0, 1;0, 0.5, 0,0, 1, 0")}
-rail2_volumes = {parse_volume("-0.5, 0, 0,-1, 0, 0;0.5, 0, 0,1, 0, 0;0, 0, 0.4,0, 0, -1;0, 0, 0.5,0, 0, 1;0, 0.5, 0,0, 1, 0")}
-rail3_volumes = {parse_volume("-0.5, 0, 0.5,-.7071, 0, .7071;0.5, 0, -0.5,0.7071, 0, -0.7071;-0.1, 0, -0.1,-.7071, 0, -.7071;0.1, 0, 0.1,.7071, 0, .7071;0, 0.5, 0,0, 1, 0")}
-rail4_volumes = {parse_volume("-0.1, 0, 0.1,-.7071, 0, .7071;0.1, 0, -0.1,0.7071, 0, -0.7071;-0.5, 0, -0.5,-.7071, 0, -.7071;0.5, 0, 0.5,.7071, 0, .7071;0, 0.5, 0,0, 1, 0")}
-qp_volumes = {parse_volume("-0.5, 0, 0,-1, 0, 0;-0.49, 0, 0,1, 0, 0;0, 0, -0.5,0, 0, -1;0, 0, 0.5,0, 0, 1;0, 1, 0,0, 1, 0")}
-        
 local steps = 4
 local stepsize = 1 / (steps + 1) * 3.14159 / 2
 for i = 0, steps + 1 do
@@ -32,7 +11,6 @@ for i = 0, steps + 1 do
     add(v, {pt = {0.49 - x * 0.97, (1-y) * 0.99, 0}, normal = v_norm({x, y, 0})})
     add(qp_volumes, v)
 end
-
 
 for i = 0.5, 15, 0.5 do
     cached_blocks[i] = {}
@@ -70,10 +48,10 @@ function find_first_collision(pt, vel, volumes)
         -- Get the plane and pt with lowest t value > 0
         -- Check if that point is inside every plane in the volume
         -- If we are that's a candidate volume and we record the closest plane and the t value            
-    local nearest_volume, nearest_plane, nt = nil, nil, 999999
+    local nearest_volume, nearest_plane, nt, nearest_cell = nil, nil, 999999, nil
     local eps = 0.001
     for vo in all(volumes) do
-        local volume, offset = unpack(vo)
+        local volume, offset, cell = unpack(vo)
         local off_pt = v_sub(pt, offset)
         local still_inside = true
         for plane in all(volume) do
@@ -84,11 +62,12 @@ function find_first_collision(pt, vel, volumes)
                     nt = t
                     nearest_plane = plane
                     nearest_volume = volume
+                    nearest_cell = cell
                 end
             end
         end
     end
-    return nearest_volume, nearest_plane, nt
+    return nearest_volume, nearest_plane, nt, nearest_cell
 end
 
 function rotate(v, fliph, flipv)
@@ -120,7 +99,7 @@ function prepare_collision_volumes(cells)
         if cell.elev > 0 then
             local offset = {cell.x + 0.5, 0, cell.z + 0.5}
             local v = cached_blocks[cell.elev]
-            add(volumes, {v, offset})
+            add(volumes, {v, offset, cell})
         end
         for i = 1, #tt.volumes do
             local offset = {cell.x + 0.5, cell.elev, cell.z + 0.5}
@@ -132,7 +111,7 @@ function prepare_collision_volumes(cells)
                 rv = prepare_prefab_volume(v, cell.fliph, cell.flipv)
                 cached_prefabs[key] = rv
             end
-            add(volumes, {rv, offset})
+            add(volumes, {rv, offset, cell})
         end
     end
     return volumes
@@ -162,16 +141,17 @@ function collide_point_volumes(pt, vel, volumes)
     local new_pt = v_copy(pt)
     local new_vel = v_copy(vel)
     local done = false
-    local e = 0.001
     local eps = 0.001
     local loops = 0
     local collision_plane = nil
+    local last_cell = nil
     while not done do
         local mag = v_mag(new_vel)
         local start_pt = v_copy(new_pt)
-        local nearest_volume, nearest, nt = find_first_collision(new_pt, new_vel, volumes)
+        local nearest_volume, nearest, nt, nearest_cell = find_first_collision(new_pt, new_vel, volumes)
         
         if nearest and loops < 20 then
+            last_cell = nearest_cell
             collision_plane = nearest
             local t = nt - eps / mag
             local delta = v_mul(new_vel, t)
@@ -189,10 +169,10 @@ function collide_point_volumes(pt, vel, volumes)
             loops += 1
         else
             done = true
-            new_pt = v_add(new_pt, new_vel), collision_plane
+            new_pt = v_add(new_pt, new_vel), collision_plane, last_cell
         end
     end
-    return new_pt, v_sub(new_pt, pt), collision_plane
+    return new_pt, v_sub(new_pt, pt), collision_plane, last_cell
 end
 
 function get_rail_t(pt, rail)

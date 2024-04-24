@@ -14,12 +14,14 @@ edit_ent = {}
 tile_groups = {
     split"block,hblock1,hblock2",
     split"ramp1,ramp2",
-    split"rail1,rail2,rail3,rail4",
+    split"rail1,rail2,rail3,rail4,rail5",
     split"qp",
 }
 edit_tile_group = 1
+tile_special = 0
 
 function _init()
+    score = 0
     for i = 0, 30 do
         local x = ((rnd(2) - 1) * 8) \ 1
         local z = ((rnd(2) - 1) * 8) \ 1
@@ -120,10 +122,17 @@ function _update()
 
     if symbol == "l" then
         load(LEVEL1)
+        fix_grinds()
+        is_editing = false
+        del(all_entities, edit_ent)
     end
 
     if symbol == "w" then
         SHOW_DEPTH = not SHOW_DEPTH
+    end
+
+    if symbol == "y" then
+        tile_special = (tile_special + 1) % 10
     end
 
     if is_editing then  
@@ -149,9 +158,11 @@ function _update()
             end
         end
 
-        if (mb & 0b01) != 0 then
-            add_map_tile(mv[1], mv[3], ti, editor_elev, editor_fliph, editor_flipv)
+        if (mb & 0b01) != 0 and not mbs[1] then
+            local cell = add_map_tile(mv[1], mv[3], selected_tile, editor_elev, editor_fliph, editor_flipv, tile_special)
+            tile_special = 0
             presort_cells()
+            
         end
         if (mb & 0b10) != 0 and not mbs[2] then
             editor_sel += 1
@@ -200,7 +211,13 @@ function _draw()
         end
         sort(all_entities, axissort)
     end
-    render_iso_entities()
+    render_iso_entities(24, true)
+    for ent in all(all_entities) do
+        if ent.cell and ent.cell.special then
+            local p = v2p(ent.center)
+            print(ent.cell.special, p[1] - 1, p[2] - 3, 2, 10)
+        end
+    end
 
     for op in all(debugs) do
         op()
@@ -228,6 +245,7 @@ function _draw()
     --print(stat(0), 1, 100, 11)
     draw_inputs(2, 2)
     draw_combo()
+    print(tile_special, 120, 2, 10)
     --pal(split"1,2,3,4,5,143,7,8,9,10,11,12,128,14,15,0",1)
     pal(split"1,2,3,4,140,15,7,8,9,10,11,12,140,14,134,0",1)
 end
@@ -236,7 +254,11 @@ function save()
     local string = ""
     for x, zs in pairs(map) do
         for z, cell in pairs(zs) do
-            string ..= x .. "," .. z .. "," .. cell.elev .. "," .. cell.index .. "," .. (cell.fliph and 1 or 0) .. "," .. (cell.flipv and 1 or 0) .. ";"
+            local extra = ""
+            if cell.special and cell.special > 0 then
+                extra = "," .. cell.special
+            end
+            string ..= x .. "," .. z .. "," .. cell.elev .. "," .. cell.index .. "," .. (cell.fliph and 1 or 0) .. "," .. (cell.flipv and 1 or 0) .. extra .. ";"
         end
     end    
     printh(string)
