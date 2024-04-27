@@ -16,6 +16,9 @@ tile_groups = {
     split"ramp1,ramp2",
     split"rail1,rail2,rail3,rail4,rail5",
     split"qp",
+    split"taxi1,taxi2",
+    split"floor1,floor2,floor3,floor4,floor5",
+    split"wall1",
 }
 edit_tile_group = 1
 tile_special = 0
@@ -46,7 +49,9 @@ function _update()
 
     time += 1
     mx, my, mb = stat(32), stat(33), stat(34)
-    mv = p2vi({mx, my})
+    mv = p2v({mx, my})
+    mv[1] = mv[1]\1
+    mv[3] = mv[3]\1
 
     if is_editing then
         if btn(0) then
@@ -111,6 +116,7 @@ function _update()
         is_editing = not is_editing
         if not is_editing then
             del(all_entities, edit_ent)
+            skater.pos[2] += 4
         else
             add(all_entities, edit_ent)
         end
@@ -140,6 +146,9 @@ function _update()
         if (symbol == "2") edit_tile_group = 2
         if (symbol == "3") edit_tile_group = 3
         if (symbol == "4") edit_tile_group = 4
+        if (symbol == "5") edit_tile_group = 5
+        if (symbol == "6") edit_tile_group = 6
+        if (symbol == "7") edit_tile_group = 7
         if symbol == "q" then
             rotation = (rotation + 1) % 4
             editor_fliph = rotations[rotation + 1][1]
@@ -184,22 +193,9 @@ function _update()
 end
 editor_sel = 1
 
-local borders = {
-    {LEVEL_BORDERS[1], 0, LEVEL_BORDERS[3]},
-    {LEVEL_BORDERS[2], 0, LEVEL_BORDERS[3]},
-    {LEVEL_BORDERS[2], 0, LEVEL_BORDERS[4]},
-    {LEVEL_BORDERS[1], 0, LEVEL_BORDERS[4]},
-    {LEVEL_BORDERS[1], 0, LEVEL_BORDERS[3]},
-}
-
 function _draw()
     cls(15)
     camera(-scroll[1], -scroll[2])
-    line()
-    for i = 1, 5 do
-        local v = v2p(borders[i])
-        line(v[1], v[2], 7)
-    end
 
     if is_editing then
         local t = tiles[selected_tile]
@@ -247,7 +243,7 @@ function _draw()
     draw_combo()
     print(tile_special, 120, 2, 10)
     --pal(split"1,2,3,4,5,143,7,8,9,10,11,12,128,14,15,0",1)
-    pal(split"1,2,3,4,140,15,7,8,9,10,11,12,140,14,134,0",1)
+    pal(split"1,2,3,5,140,15,7,8,9,10,11,12,140,14,134,0",1)
 end
 
 function save()

@@ -1,5 +1,3 @@
-
-debugs = {}
 LEVEL_BORDERS = {-16.9, 1.9, -8.9, 19.9}
 levelnum = 1
 
@@ -9,7 +7,6 @@ function game_init()
     skater = make_skater()
     add(all_entities, skater)
     add(all_entities, skater.shadow)
-    add(all_entities, edit_ent)
     scroll = {0,0}
     score = 0
     level_specials = {
@@ -20,12 +17,6 @@ function game_init()
 end
 
 time = 0
-local mbs = {false, false}
-local editor_elev = 0
-local editor_fliph = false
-local editor_flipv = false
-local rotations = {{false, false}, {true, false}, {false, true}, {true, true}}
-local rotation = 0
 function game_update()
 
     time += 1
@@ -65,6 +56,8 @@ function game_update()
     if abs(sp[2] - 64) > 6 then
         scroll[2] = (64 - sp[2]) * 0.1 + scroll[2] * 0.9
     end    
+    scroll[1] = mid(scroll[1], -232, 24)
+    scroll[2] = mid(scroll[2], -232, 24)
         
     update_inputs()
     skater:update()  
@@ -72,22 +65,9 @@ function game_update()
     update_goals()
 end
 
-local borders = {
-    {LEVEL_BORDERS[1], 0, LEVEL_BORDERS[3]},
-    {LEVEL_BORDERS[2], 0, LEVEL_BORDERS[3]},
-    {LEVEL_BORDERS[2], 0, LEVEL_BORDERS[4]},
-    {LEVEL_BORDERS[1], 0, LEVEL_BORDERS[4]},
-    {LEVEL_BORDERS[1], 0, LEVEL_BORDERS[3]},
-}
-
 function game_draw()
     cls(15)
     camera(-scroll[1], -scroll[2])
-    line()
-    for i = 1, 5 do
-        local v = v2p(borders[i])
-        line(v[1], v[2], 7)
-    end
 
     render_iso_entities(26, true)
     camera()

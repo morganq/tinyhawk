@@ -2,7 +2,6 @@
 p8cos = cos function cos(angle) return p8cos(angle/(3.1415*2)) end
 p8sin = sin function sin(angle) return -p8sin(angle/(3.1415*2)) end
 p8atan2 = atan2 function atan2(x,y) return p8atan2(x,-y) * 6.2818 end
-function tan(angle) return sin(angle) / cos(angle) end
 
 
 ----- VECTORS -----
@@ -32,12 +31,19 @@ function v_dot(a,b) return a[1]*b[1] + a[2] * b[2] + a[3] * b[3] end
 
 function v_zero() return {0,0,0} end
 function v_copy(v) return {v[1], v[2], v[3]} end
-function copy(t) 
-    local t2 = {}
-    for v in all(t) do add(t2, v) end
-    return t2
+
+function v_fwd_lateral(point, forward, forward_len, side_len, flatten)
+    local fwd_norm = v_norm({forward[1], flatten and 0 or forward[2], forward[3]})
+    local side_norm = {fwd_norm[3], fwd_norm[2], -fwd_norm[1]}
+    return v_add(point, v_add(
+        v_mul(fwd_norm, forward_len),
+        v_mul(side_norm, side_len)
+    ))
 end
 
+function v_flat(v) return {v[1], 0, v[3]} end
+
+-- can remove
 function pv(v, label)
     printh((label or "") .. v[1] .. "," .. v[2] .. "," .. v[3])
 end
@@ -47,11 +53,6 @@ function v2p(v)
         v[1] * -8 + v[3] * 8 + 64,
         v[1] * 4 + v[3] * 4 + v[2] * -8 + 64
     }
-end
-
-function p2vi(p)
-    local v = p2v(p)
-    return {v[1]\1, v[2]\1, v[3]\1}
 end
 
 function p2v(p)
@@ -98,6 +99,7 @@ function get_cells_within(pt, range)
 end
 
 -- opt: can delete
+--[[
 function tostring(any)
     if (type(any)~="table") return tostr(any)
     local str = "{"
@@ -107,16 +109,7 @@ function tostring(any)
     end
     return str.."}"
 end
-
---[[
-function gprint(t, x, y, c)
-    clip(0,0, 127,y + 2)
-    print(t, x+1, y, c)
-    clip(0,y+2, 127,127)
-    print(t, x, y, c)
-    clip()
-end
-]]
+]] 
 
 function pr(x, y)
     return sin(v_dot({x,y,0}, v_mul({12.9898, 78.233,0}, 20.0437))) % 1
@@ -152,59 +145,42 @@ function sprint(t, x, y, c)
     print(t, x, y, c)
 end
 
---[[
 function transition()
-    palt(14, true)
-    palt(0, false)
-    pal(split"1,2,3,5,140,15,7,8,9,10,11,12,140,14,134,0",1)
-    for i = 0, 63 do
-        local t = i / 64
-        local function ds(col, c)
-            local t = (i - abs(col) * 2 - 2) * 3
-            local y1 = col * 8 + 32
-            local y = col * 8 + t * 2 + 32
-            local x = t * 4
-            if t > 0 then
-                for j = 0, 7 do
-                    line(0, y1 + j, x, y + j, c)
-                end
-            end
-            spr(220, x, y, 4, 3)
-        end
-        for j = 0, 12 do 
-            ds(j, j % 2 == 0 and 5 or 7)
-            ds(-j, j % 2 == 0 and 5 or 7)
-        end
-        flip()
-    end
-    palt()
-end
-]]
-
-function transition()
-    fillps = {0b0101101001011010.1, 0b1010010110100101.1}
+    fillps = split"0b0101101001011010.1, 0b1010010110100101.1, 0b1011111010111110.1, 0b1111101011111010.1"
+    --fillps = {0b1011111010111110.1, 0b0111110101111101.1, 0b1111101011111010.1, 0b1111010111110101.1}
     pal(split"1,2,3,5,140,15,7,8,9,10,11,12,140,14,134,0",1)
     local speed = 0
-    for i = 0, 63 do
-        local rad = sin(i / 15) * 6 + 14
+    local drips = {}
+    for i = 0, 47 do
+        local rad = sin(i / 15) * 6 + 15
         function cf(x,y,rad,c)
             fillp(rnd(fillps))
             circfill(x, y, rad, c)
-            
+            if rnd() < 0.02 then
+                add(drips, {x, y, min(rad,4), rnd()})
+            end
         end
         function paint(x,y)
             for i = 0, 5 do
                 theta = rnd() * 6.2818
                 local ox, oy = cos(theta) * (rad + rnd() * 7 - 1), sin(theta) * (rad + rnd() * 7 - 1)
-                cf(x + ox, y + oy, rnd(3), 0)
+                cf(x + ox, y + oy, rnd(3) + 3, 0)
             end
             cf(x, y, rad, 0)
         end
-        for z = 0, 3 do
-            local t = i + z / 4
+        for z = 0, 6 do
+            local t = i + z / 7
             local x = cos(t / 2) * -64 + 64
-            local y = t * 2.5 - x / 4
+            local y = t * 3.5 - x / 4
             paint(x,y)
+        end
+        fillp()
+        for drip in all(drips) do
+            for i = 1, 6 do
+                circfill(drip[1], drip[2], drip[3], 0)
+                drip[2] += drip[4]
+                drip[4] -= 0.004
+            end
         end
         flip()
     end

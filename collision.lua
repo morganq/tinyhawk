@@ -1,4 +1,3 @@
-cached_blocks = {}
 cached_prefabs = {}
 
 local steps = 4
@@ -10,14 +9,6 @@ for i = 0, steps + 1 do
     local v = parse_volume("-0.5,0,0,-1,0,0;0,0,-0.5,0,0,-1;0,0,0.5,0,0,1;0,1,0,0,1,0;0,0,0,0,-1,0")
     add(v, {pt = {0.49 - x * 0.97, (1-y) * 0.99, 0}, normal = v_norm({x, y, 0})})
     add(qp_volumes, v)
-end
-
-for i = 0.5, 15, 0.5 do
-    cached_blocks[i] = {}
-    for plane in all(block_volumes[1]) do
-        add(cached_blocks[i], {pt = v_copy(plane.pt), normal = v_copy(plane.normal)})
-    end
-    cached_blocks[i][5].pt[2] += i - 0.5
 end
 
 function plane_segment(plane, pt, vel)
@@ -107,7 +98,7 @@ function prepare_collision_volumes(cells)
             local key = tt.name .. "_" .. i .. "_" .. (cell.fliph and 1 or 0) .. (cell.flipv and 1 or 0)
             local rv = cached_prefabs[key]
             if not rv then
-                printh("caching " .. key)
+                --printh("caching " .. key)
                 rv = prepare_prefab_volume(v, cell.fliph, cell.flipv)
                 cached_prefabs[key] = rv
             end
@@ -138,13 +129,7 @@ function collide_point_volumes(pt, vel, volumes)
         return v_add(pt, vel), vel
     end
 
-    local new_pt = v_copy(pt)
-    local new_vel = v_copy(vel)
-    local done = false
-    local eps = 0.001
-    local loops = 0
-    local collision_plane = nil
-    local last_cell = nil
+    local new_pt, new_vel, done, eps, loops, collision_plane, last_cell = v_copy(pt), v_copy(vel), false, 0.001, 0, nil, nil
     while not done do
         local mag = v_mag(new_vel)
         local start_pt = v_copy(new_pt)
@@ -176,18 +161,14 @@ function collide_point_volumes(pt, vel, volumes)
 end
 
 function get_rail_t(pt, rail)
-    local delta = v_sub(rail[2], rail[1])
-    local len = v_mag(delta)
-    local rail_fwd = v_norm(delta)
-    local pos_delta = v_sub(pt, rail[1])
-    return v_dot(pos_delta, rail_fwd), rail_fwd, len
+    return v_dot(v_sub(pt, rail[1]), rail.fwd)
 end
 
 function get_next_rail_pt(pt, fwd, speed, rail)
-    local t, rail_fwd, len = get_rail_t(pt, rail)
+    local t = get_rail_t(pt, rail)
     local t2 = t + speed
-    if v_dot(fwd, rail_fwd) < 0 then
+    if v_dot(fwd, rail.fwd) < 0 then
         t2 = t - speed
     end
-    return v_add(rail[1], v_mul(rail_fwd, t2)), t, len
+    return v_add(rail[1], v_mul(rail.fwd, t2)), t, rail.len
 end

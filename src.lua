@@ -10,5 +10,5 @@ end
 
 function _init()
     poke(0X5F5C, 255)
-    set_state("select")
+    set_state("game")
 end
