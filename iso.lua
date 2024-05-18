@@ -1,11 +1,11 @@
 map = {}
 
 isopals = {
-    {split"1,5,3,4,5,6,15,13,6,10,11,12,13,14,6,0", split"5,13,3,4,1,13,15,6,15,10,11,12,5,14,6,0"},
-    {split"1,5,3,4,5,6,15,13,6,10,11,12,13,14,6,0", split"5,13,3,4,1,13,15,6,15,10,11,12,5,14,6,0"}
+    {split"1,5,3,4,5,6,15,8,9,10,11,12,13,14,6,0", split"5,13,3,4,1,13,15,8,9,10,11,12,5,14,6,0"},
+    {split"1,5,3,4,5,6,15,8,9,10,11,12,13,14,6,0", split"5,13,3,4,1,13,15,8,9,10,11,12,5,14,6,0"}
 }
 
-function isospr(s1, s2, v, h, elev, fliph, flipv, draw_elev_left, draw_elev_right, brights, prefab)
+function isospr(s1, s2, v, h, elev, fliph, flipv, draw_elev_left, draw_elev_right, brights, prefab, decals)
     elev = elev or 0
     local p = v2p(v)
     local x1, y1, y2 = p[1] - 8, p[2] - h * 8 - elev * 8, p[2] + 4 - elev * 8
@@ -82,18 +82,15 @@ function add_map_tile(x, z, ind, elev, fliph, flipv, special)
                     tile.height, cell.elev,
                     cell.fliph, cell.flipv, l, r, self.brights, tile.prefab)
                 
-                
-                -- Draw rails
                 --[[
+                -- Draw rails
                 for rail in all(self.cell.rails) do
                     local p1, p2 = v2p(rail[1]), v2p(rail[2])
                     line(p1[1], p1[2], p2[1], p2[2], 8)
                 end
-                ]]
                 
                 
                 -- Draw planes
-                --[[
                 local offset = {x + 0.5, elev, z + 0.5}
                 for i = 1, #tile.volumes do
                     local key = tile.name .. "_" .. i .. "_" .. (cell.fliph and 1 or 0) .. (cell.flipv and 1 or 0)
@@ -118,7 +115,7 @@ function add_map_tile(x, z, ind, elev, fliph, flipv, special)
         map[x][z] = e.cell 
         e.cell.rails = {}
         e.depth = axis
-        local rail_offset = {e.center[1], elev, e.center[3]}
+        local rail_offset = {x + .5, elev, z + .5}
         for rail in all(tile.rails) do
             local r1 = rotate(rail[1], cell.fliph, cell.flipv)
             local r2 = rotate(rail[2], cell.fliph, cell.flipv)
@@ -131,13 +128,7 @@ function add_map_tile(x, z, ind, elev, fliph, flipv, special)
 end
 
 function get_depth(a)
-    if (a.depth_point) return a.depth_point[1] + a.depth_point[2] + a.depth_point[3]
     return a.center[1] + a.center[2] + a.center[3]
-end
-function axissort(a, b)
-    local d = v_sub(a.center, b.center)
-    if (abs(d[2]) >= a.height / 2 + b.height / 2) return d[2] > 0
-    return get_depth(a) > get_depth(b)
 end
 
 function presort_cells()
@@ -148,9 +139,13 @@ function presort_cells()
             ent.depth = 0
         end
     end
-    sort(all_entities, function(a,b)
-        return a.depth > b.depth
-    end)
+    local ents = {}
+    for ent in all(all_entities) do
+        insert_cmp(ents, ent, function(a,b)
+            return a.depth > b.depth
+        end)
+    end
+    all_entities = ents
 end
 
 function render_iso_entities(rendersize, use_skater)
@@ -161,7 +156,7 @@ function render_iso_entities(rendersize, use_skater)
 
     for x = x1, x2 do
         for z = z1, z2 do
-            if z % 2 == 0 and (x < LEVEL_BORDERS[1] or x > LEVEL_BORDERS[2] or z < LEVEL_BORDERS[3] or z > LEVEL_BORDERS[4]) then
+            if z % 2 == 0 and (x < minx or x > maxx or z < minz - 1 or z >= maxz) then
                 spr(112, x * -8 + z * 8 + 64, x * 4 + z * 4 + 68, 2, 1)
             end
         end

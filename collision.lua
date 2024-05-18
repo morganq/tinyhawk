@@ -1,17 +1,8 @@
 cached_prefabs = {}
 
-local steps = 4
-local stepsize = 1 / (steps + 1) * 3.14159 / 2
-for i = 0, steps + 1 do
-    local angle = i * stepsize
-    local y = cos(angle)
-    local x = sin(angle)
-    local v = parse_volume("-0.5,0,0,-1,0,0;0,0,-0.5,0,0,-1;0,0,0.5,0,0,1;0,1,0,0,1,0;0,0,0,0,-1,0")
-    add(v, {pt = {0.49 - x * 0.97, (1-y) * 0.99, 0}, normal = v_norm({x, y, 0})})
-    add(qp_volumes, v)
-end
-
 function plane_segment(plane, pt, vel)
+    -- return the collision point (the `t` in pt + vel * t)
+    -- between this segment (ray actually) and the plane
     local delta = v_sub(v_add(pt, vel), plane.pt)
     local dot = v_dot(delta, plane.normal)
     if dot < 0 then -- normal and delta are facing opposite directions
@@ -26,6 +17,7 @@ function plane_segment(plane, pt, vel)
 end
 
 function check_inside(pt, volume)
+    -- Return if pt is inside the volume
     for plane in all(volume) do
         if v_dot(v_sub(pt, plane.pt), plane.normal) > 0 then
             return false
@@ -44,7 +36,6 @@ function find_first_collision(pt, vel, volumes)
     for vo in all(volumes) do
         local volume, offset, cell = unpack(vo)
         local off_pt = v_sub(pt, offset)
-        local still_inside = true
         for plane in all(volume) do
             local t = plane_segment(plane, off_pt, vel)
             if t != nil and t < nt then
@@ -98,7 +89,6 @@ function prepare_collision_volumes(cells)
             local key = tt.name .. "_" .. i .. "_" .. (cell.fliph and 1 or 0) .. (cell.flipv and 1 or 0)
             local rv = cached_prefabs[key]
             if not rv then
-                --printh("caching " .. key)
                 rv = prepare_prefab_volume(v, cell.fliph, cell.flipv)
                 cached_prefabs[key] = rv
             end

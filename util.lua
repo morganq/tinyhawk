@@ -43,10 +43,6 @@ end
 
 function v_flat(v) return {v[1], 0, v[3]} end
 
--- can remove
-function pv(v, label)
-    printh((label or "") .. v[1] .. "," .. v[2] .. "," .. v[3])
-end
 
 function v2p(v)
     return {
@@ -62,16 +58,6 @@ function p2v(p)
         0,
        (y / 4 + x / 8) / 2,
     }
-end
-
-function sort(a,cmp)
-    for i=1,#a do
-        local j = i
-        while j > 1 and cmp(a[j-1],a[j]) do
-            a[j],a[j-1] = a[j-1],a[j]
-            j -= 1
-        end
-    end
 end
 function insert_cmp(a, v, cmp)
     for i=1,#a do
@@ -97,19 +83,6 @@ function get_cells_within(pt, range)
     end
     return cells
 end
-
--- opt: can delete
---[[
-function tostring(any)
-    if (type(any)~="table") return tostr(any)
-    local str = "{"
-    for k,v in pairs(any) do
-      if (str~="{") str=str..","
-      str=str..tostring(k).."="..tostring(v)
-    end
-    return str.."}"
-end
-]] 
 
 function pr(x, y)
     return sin(v_dot({x,y,0}, v_mul({12.9898, 78.233,0}, 20.0437))) % 1
@@ -140,18 +113,27 @@ function grungeline(x1, x2, y1, y2, c)
     end    
 end
 
+function grungebutton(text, x, y, fg, bg)
+    local w = print(text, 0, -10)
+    local x = x - w / 2
+    grungeline(x - 7, x + w + 7, y - 2, y + 7, bg)
+    sprint(text, x, y, fg)    
+end
+
 function sprint(t, x, y, c)
     print(t, x, y + 1, 0)
     print(t, x, y, c)
 end
 
 function transition()
+    skatesnd(9)
     fillps = split"0b0101101001011010.1, 0b1010010110100101.1, 0b1011111010111110.1, 0b1111101011111010.1"
     --fillps = {0b1011111010111110.1, 0b0111110101111101.1, 0b1111101011111010.1, 0b1111010111110101.1}
-    pal(split"1,2,3,5,140,15,7,8,9,10,11,12,140,14,134,0",1)
+    --pal(split"1,2,3,5,140,15,7,8,9,10,11,12,140,14,134,0",1)
     local speed = 0
     local drips = {}
     for i = 0, 47 do
+        
         local rad = sin(i / 15) * 6 + 15
         function cf(x,y,rad,c)
             fillp(rnd(fillps))
@@ -183,6 +165,15 @@ function transition()
             end
         end
         flip()
+        
     end
     fillp()
+end
+
+function skatesnd(ind, r)
+    -- sounds are in order of priority
+    if ind >= stat(46) and time != last_sound_time then
+        sfx(ind, 0, rnd(r)\1, r and 2 or -1)
+        last_sound_time = time
+    end
 end

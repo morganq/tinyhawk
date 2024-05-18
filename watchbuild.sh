@@ -1,0 +1,1 @@
+fswatch -o ../ -e "tinyhawk_html/*.*" | xargs -n1 -I{} ./minify.sh

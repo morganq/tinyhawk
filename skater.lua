@@ -1,11 +1,8 @@
-STEP = 0.2
-FRICTION = 0.0012
-DEG2RAD = 3.14159 / 180
+STEP, FRICTION, DEG2RAD, BASEMAXSPEED, MAXMAXSPEED = 0.2, 0.0012, 0.01745, 0.115, .195
 
 function make_skater()
     local e = {
-        pos = {-1.5, 2, -5.5},
-        center = {0.5, 0, 0.5},
+        pos = split(level_start),
         depth = 0,
         vel = {0, 0, 0},
         fwd = v_norm({0, 0, 1}),
@@ -21,18 +18,17 @@ function make_skater()
         max_speed = 0.125,
         char_y = 0,
         char_yv = 0,
-        switch = false,
         current_trick_t = 0,
         fall_timer = 0,
         fall_time = 0,
         in_manual = false,
         rotvel = 0,
-        special_rail_distance = 0,
         spin_counter = 0,
+        balance = 0,
+        balance_volatility = 0,
+        balance_vel = 0,
         draw = function(self)
-            local skate_fwd, pos = v_copy(self.fwd), self.pos
-            local spin = {0,0,0}
-            local ct = self.current_trick
+            local skate_fwd, pos, spin, ct = v_copy(self.fwd), self.pos, v_zero(), self.current_trick
             if ct then
                 if ct.spins then
                     local tt = min(self.current_trick_t / ct.time, 0.999)
@@ -76,17 +72,10 @@ function make_skater()
                     line(p1[1] - dy, p1[2] + dx, p2[1] - dy, p2[2] + dx, board_color == 0 and 5 or 2)
                 end
             end
-            local nv = self.flat_fwd
-            local p1 = v2p(v_fwd_lateral(pos, nv, 0.5, 0))
-            local p2 = v2p(v_fwd_lateral(pos, nv, 1.5, 0))
-            local p3 = v2p(v_fwd_lateral(pos, nv, 1.25, 0.25))
-            local p4 = v2p(v_fwd_lateral(pos, nv, 1.25, -0.25))
-            line(p1[1], p1[2], p2[1], p2[2], 11)
-            line(p3[1], p3[2])
-            line(p2[1], p2[2], p4[1], p4[2])
 
             local p, flip, frame = nil, false, 192
             if self.fall_timer > 0 then
+                self.vel = v_zero()
                 local t = (1 - self.fall_timer / self.fall_time)
                 local tt = t
                 flip = (self.fall_vector[1] - self.fall_vector[3]) > 0
@@ -102,11 +91,9 @@ function make_skater()
                 local v = v_add(pos, v_mul(self.fall_vector, tt))
                 p = v2p(v)
                 self.shadow.pos = v
-                self.shadow.center = self.shadow.pos                
             else            
                 p = v2p({pos[1], self.char_y, pos[3]})
-                flip = (self.fwd[1] - self.fwd[3]) > 0
-                if self.switch then flip = not flip end
+                flip = (self.flat_fwd[1] - self.flat_fwd[3]) > 0
                 if ct and ct.anim then
                     frame = ct.anim
                 else
@@ -114,12 +101,34 @@ function make_skater()
                     if frame >= 197 then
                         frame = 195 + (frame-1) % 2
                     end
+                    if frame == 192 and self.pushing then
+                        frame = 211 + time \ 4 % 6
+                    end
                 end
             end
             spr(frame, p[1] - 4, p[2] - 8, 1, 1, flip)            
         end,
+        draw_arrow = function(self, yo, c)
+            local pos = self.pos
+            local nv = self.flat_fwd
+            local p1 = v2p(v_fwd_lateral(pos, nv, 0.5, 0))
+            local p2 = v2p(v_fwd_lateral(pos, nv, 1.5, 0))
+            local p3 = v2p(v_fwd_lateral(pos, nv, 1.25, 0.25))
+            local p4 = v2p(v_fwd_lateral(pos, nv, 1.25, -0.25))
+            line(p1[1], p1[2] + yo, p2[1], p2[2] + yo, c)
+            line(p3[1], p3[2] + yo)
+            line(p2[1], p2[2] + yo, p4[1], p4[2] + yo)            
+        end,
         control = function(self, turn, fb, hold)
-            if self.grind_line != nil or self.fall_timer > 0 then
+            if self.grind_line != nil then
+                self.balance += turn * (self.balance_volatility + 1) * -0.35
+                self.rotvel = 0
+                return
+            end
+            if self.in_manual then
+                self.balance += fb * (self.balance_volatility + 1) * -0.35
+            end
+            if self.fall_timer > 0 then
                 self.rotvel = 0
                 return
             end
@@ -132,10 +141,10 @@ function make_skater()
             local new_angle = fwd_angle + self.rotvel
             local flat_vel = v_flat(self.vel)
             local speed = v_mag(flat_vel)         
-            if speed < 0.125 then
-                self.max_speed = 0.125
+            if speed < BASEMAXSPEED then
+                self.max_speed = BASEMAXSPEED
             else
-                self.max_speed = min(self.max_speed + 0.0015, 0.175)
+                self.max_speed = min(self.max_speed + 0.0007, MAXMAXSPEED)
             end
             self.flat_fwd = {cos(new_angle), 0, sin(new_angle)}            
             if self.airborne then
@@ -151,20 +160,25 @@ function make_skater()
                     end
                 end
             else
-                if hold then
+                if hold or fb > 0 then
                     speed += (speed > self.max_speed) and FRICTION or 0.01
-                end    
+                    self.pushing = true
+                else
+                    self.pushing = false
+                end
                 if fb == -1 then
                     speed = max(speed - 0.01, 0)
                 end   
                 local new_vel = {cos(new_angle) * speed, self.vel[2], sin(new_angle) * speed}
                 local dot = v_dot(self.flat_fwd, v_norm(flat_vel))
-                if v_mag(self.vel) > 0.05 and abs(dot) < 0.7 then
+                if v_mag(self.vel) > 0.1 and abs(dot) < 0.6 then
                     self:fall()
                 else
                     if not self.in_manual then
                         local in_trick = self.current_trick != nil and not self.current_trick.is_manual and not self.current_trick.is_grind and self.current_trick_t < self.current_trick.time - 2
                         end_combo(in_trick)
+                        self.balance_volatility = 0
+                        self.balance = 0
                         if in_trick then
                             self:fall()
                         end
@@ -172,7 +186,6 @@ function make_skater()
                     if v_mag(new_vel) > 0.01 then
                         if dot < 0 then
                             self.flat_fwd = v_mul(self.flat_fwd, -1)
-                            self.switch = not self.switch
                             new_vel[1] = -new_vel[1]
                             new_vel[3] = -new_vel[3]
                         end
@@ -195,8 +208,12 @@ function make_skater()
             self.fall_timer = self.fall_time
             self.vel = v_zero()
             self.current_trick = nil
-            self.switch = false
+            self.grind_line = nil
+            self.balance_volatility = 0
+            self.balance = 0          
+            self.in_manual = false  
             end_combo(true)
+            skatesnd(13)
         end,
         update = function(self)
             -- fall?
@@ -207,8 +224,10 @@ function make_skater()
             -- try grind
             if self.grind_line != nil then
                 increment_combo()
+                self:push_balance()
+                if self.grind_line == nil then return end
 
-                self.grind_speed -= self.grind_fwd[2] * 0.01 + 0.001
+                self.grind_speed += self.grind_fwd[2] * -0.01-- + 0.001
                 local next_pos,t,len = get_next_rail_pt(self.pos, self.grind_fwd, self.grind_speed, self.grind_line)
                 
                 self.fwd = self.grind_fwd
@@ -220,6 +239,7 @@ function make_skater()
                     self.grind_line = nil
                     self:lock_grind(0)
                 end
+                skatesnd(9,8)
             end
             if self.grind_line == nil and self.current_trick and self.current_trick.is_grind then
                 self.current_trick = nil
@@ -228,13 +248,16 @@ function make_skater()
             -- do everything else
             local flat_vel = v_flat(self.vel)
             local speed_sq = v_mag_sq(flat_vel)
-            if not airborne and speed_sq > FRICTION then
-                self.fwd = v_norm(self.vel)
-                local speed = v_mag(flat_vel)
-                flat_vel = v_mul(v_norm(flat_vel), speed - FRICTION)
-                self.vel = {flat_vel[1], self.vel[2], flat_vel[3]}
-            else
-                self.vel = {0,self.vel[2],0}
+            if not self.airborne and not self.grind_line then
+                if speed_sq > FRICTION then
+                    self.fwd = v_norm(self.vel)
+                    local speed = v_mag(flat_vel)
+                    flat_vel = v_mul(v_norm(flat_vel), speed - FRICTION)
+                    self.vel = {flat_vel[1], self.vel[2], flat_vel[3]}
+                    skatesnd(8,7)
+                else
+                    self.vel = {0,self.vel[2],0}
+                end
             end
             
             self:update_qp()
@@ -243,6 +266,7 @@ function make_skater()
             
             add(volumes, ground_volume)
             local gravity = -0.014
+            local frame_airborne_frames = self.airborne_frames
             self.airborne = true
             if self.grind_line != nil then
                 self:finish_spin()
@@ -250,42 +274,44 @@ function make_skater()
             end
             local p1 = v_copy(self.pos)
             self.pos, self.vel, collision_plane, hit_cell = collide_point_volumes(self.pos, v_add(self.vel, {0, gravity, 0}), volumes)
-            self.pos[1] = mid(self.pos[1], LEVEL_BORDERS[1], LEVEL_BORDERS[2])
-            self.pos[3] = mid(self.pos[3], LEVEL_BORDERS[3], LEVEL_BORDERS[4])
+            self.pos[1] = mid(self.pos[1], minx + 0.1, maxx + 0.9)
+            self.pos[3] = mid(self.pos[3], minz + 0.1, maxz + 0.9)
             self.vel = v_sub(self.pos, p1)
             if collision_plane != nil then
+                if not hit_cell then hit_cell = get_cell(self.pos) end
                 if hit_cell and hit_cell.tiletype.is_qp then
                     self.current_qp = hit_cell
                 end
                 if collision_plane.normal[2] > 0.5 then
                     if self.in_manual then
+                        
                         if self.current_trick and self.current_trick.is_manual then
                             increment_combo()
                         else
-                            add_combo("manual")
-                            self.current_trick = tricks["manual"]
+                            add_combo(self.in_manual)
+                            self.current_trick = tricks[self.in_manual]
                         end
+                        self:push_balance()
                     end
                     self:finish_spin()
-                    if self.airborne_frames > 0 and self.last_ground_cell and hit_cell then
-                        local n1, n2 = self.last_ground_cell.special, hit_cell.special
-                        if n1 and n2 then
-                            if (n1 > n2) n1, n2 = n2, n1
-                            local s = level_specials[n1 .. ">" .. n2]
-                            if s then
-                                add_combo(s)
+                    if frame_airborne_frames > 0 then
+                        if self.last_ground_cell and hit_cell then
+                            local n1, n2 = self.last_ground_cell.special, hit_cell.special
+                            if n1 and n2 then
+                                if (n1 > n2) n1, n2 = n2, n1
+                                local s = level_specials[level_index][n1 .. ">" .. n2]
+                                if s then
+                                    add_combo(s)
+                                end
                             end
                         end
+                        skatesnd(10)
                     end
                     self.airborne,self.airborne_frames,self.jumped,self.last_ground_cell,self.qp_target = false,0,false,hit_cell,nil
                 end
             end
-            
-            
-            self.center = {self.pos[1], self.pos[2] + 0.5, self.pos[3]}
 
             self.shadow.pos = find_ground(self.pos, volumes)
-            self.shadow.center = self.shadow.pos
 
             self.char_yv -= 0.02
             self.char_y = self.char_y + self.char_yv
@@ -297,7 +323,7 @@ function make_skater()
                 self.char_yv = self.vel[2]
             end
             if self.airborne then self.airborne_frames += 1 end
-            if self.airborne_frames > 3 then
+            if self.airborne_frames == 3 then
                 self.in_manual = false
             end
 
@@ -310,6 +336,17 @@ function make_skater()
             end
             self.depth = self.pos[1]\1 + hh + self.pos[3]\1 + 1
             self.shadow.depth = self.depth - 0.01
+        end,
+        push_balance = function(self)
+            self.balance_volatility += 0.02
+            if abs(self.balance) > 7 then
+                self:fall()
+                return
+            end
+            self.balance += self.balance_vel * (self.balance_volatility + 1) * 0.05
+            if time % (30 / self.balance_volatility) \ 1 == 0 or self.balance_vel == 0 then
+                self.balance_vel = sgn(rnd() - 0.5)
+            end            
         end,
         finish_spin = function(self)
             local deg = abs(self.spin_counter / 3.14159)\1 * 180
@@ -354,6 +391,7 @@ function make_skater()
         jump = function(self)
             
             if not self.airborne or (self.airborne_frames < 5 and not self.jumped) then
+                skatesnd(11)
                 self.airborne = true
                 self.jumped = true
                 self.vel[2] += mid(self.jump_charge, 6, 10) / 60
@@ -369,7 +407,7 @@ function make_skater()
                     local trick = try_get_trick()
                     if trick then
                         if tricks[trick].is_manual then
-                            self.in_manual = true
+                            self.in_manual = trick
                         else
                             self.current_trick = tricks[trick]
                             self.current_trick_t = 0
@@ -387,7 +425,7 @@ function make_skater()
         end,
         lock_grind = function(self, speedup)
             if self.grind_line then return end
-            local best_grind, dir = self:get_best_grind()
+            local best_grind, dir, cell = self:get_best_grind()
             self.grind_line = best_grind
             if self.grind_line then
                 self.airborne = false
@@ -435,18 +473,18 @@ function make_skater()
                             if gs > grind_score then
                                 grind_score = gs
                                 best = rail
+                                best_cell = cell
                                 dir = sign(dot)
                             end
                         end
                     end
                 end
             end
-            return best, dir
+            return best, dir, best_cell
         end,        
     }
     e.shadow = {
         pos = v_zero(),
-        center = v_zero(),
         depth = 0,
         height = 0,
         draw = function(self)
