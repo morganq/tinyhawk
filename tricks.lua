@@ -17,21 +17,27 @@ tricks = {}
 -- ⬅️➡️⬆️⬇️🅾️❎
 tricks_str = split([[
 chickflip/⬅️🅾️/8/100/f/f/0,0,360//
+hospital flip/⬅️⬇️🅾️/12/250/f/f/0,0,180;0,180,0//
+underflip/➡️⬇️🅾️/12/250/f/f/90,0,0;270,0,360//
 heelflap/➡️🅾️/12/150/f/f/0,0,-360//
 shuvit/⬆️🅾️/6/100/f/f/-180,0,0//
+360 shuv/⬆️⬇️🅾️/11/250/f/f/-360,0,0//
 tre flip/⬇️🅾️/15/200/f/f/-360,0,360//
-beak grab/⬆️➡️🅾️/15/300/f/f//45,0,0/209
-tail grab/⬇️⬅️🅾️/15/300/f/f//-45,0,0/210
-late reverse flip/⬅️➡️🅾️/23/300/f/f/0,0,270;0,0,-270//
-ufo chicken/⬅️⬇️➡️🅾️/31/1200/f/f/720,0,0//228
-egg/⬅️⬆️➡️🅾️/35/1200/f/f/0,0,0//229
+beak grab/⬆️⬆️🅾️/15/300/f/f//0,45,0/209
+rocket air/⬆️⬆️⬆️🅾️/25/300/f/f//0,15,0/199
+tail grab/⬇️⬇️🅾️/15/300/f/f//0,-45,0/210
+crossbone/➡️➡️🅾️/13/270/f/f//45,0,0/225
+judo air/⬅️⬅️🅾️/15/300/f/f//-45,0,0/224
+chickflip cancel/⬅️➡️🅾️/20/300/f/f/0,0,270;0,0,-270//
+ufo bird/⬅️⬆️➡️🅾️/31/1200/f/f/720,0,0//228
+egg/⬅️⬇️➡️⬆️🅾️/35/1200/f/f/0,0,0//229
 grind///100/t/f//90,0,0/208
 manual/⬆️⬇️//40/f/t//0,30,0/208
 headstand/⬆️⬆️⬇️//70/f/t//0,30,0/228
-casper/⬆️➡️⬇️//60/f/t//0,0,180/208
+casper slide/⬇️⬇️⬆️//60/f/t//0,30,180/208
 nose manual/⬇️⬆️//50/f/t//0,-30,0/208
 taxi gap///200/f/f////
-halfpipe gap///300/f/f////
+halfpipe gap///200/f/f////
 halfpipe///0/f/f////
 module gap 1///400/f/f////
 module gap 2///400/f/f////
@@ -40,24 +46,41 @@ central rail///150/f/f////
 curb stair///300/f/f////
 pipe transfer///200/f/f////
 caution tape to taxi///300/f/f////
-180///50/f/f////
-360///120/f/f////
-540///250/f/f////
-720///500/f/f////
-900///1000/f/f////
-1080///2000/f/f////
+180///180/f/f////
+360///360/f/f////
+540///540/f/f////
+720///720/f/f////
+900///900/f/f////
+1080///1080/f/f////
 ]],"\n")
 
 function draw_trick_list()
-    local trick_strings = {}
-    for ti, name in pairs(trick_inputs) do
-        insert_cmp(trick_strings, {ti, name}, function(a,b) return #a[1] > #b[1] end)
-    end
+    local trick_strings = split([[
+ᶜb❎ ᶜ6ollie
+ᶜ8🅾️ ᶜ6grind
+manuals-
+⬆️⬇️ ᶜ6manual
+⬇️⬆️ ᶜ6nose manual
+flip trix-
+⬆️ᶜ8🅾️ ᶜ6shuv it
+⬅️ᶜ8🅾️ ᶜ6chickflip
+➡️ᶜ8🅾️ ᶜ6heelflap
+⬇️ᶜ8🅾️ ᶜ6tre flip
+grabs-
+⬆️⬆️ᶜ8🅾️ ᶜ6beak grab
+⬇️⬇️ᶜ8🅾️ ᶜ6tail grab
+magic-
+⬅️⬆️➡️ᶜ8🅾️ ᶜ6ufo bird
+... and many more??
+]],"\n")
     
     rectfill(0,0,127,127, 0)
+    --camera(0,sin(time/32)*24)
     for i,ts in ipairs(trick_strings) do
-        gprint(ts[1] .. " " .. ts[2], 2, i * 8 - 8, 7)
+        gprint(ts, 2, i * 8 - 8, 7)
+        --print(ts, 2, i * 8 - 8, 7)
     end
+    --camera()
     grungebutton("🅾️ back", 95, 8, 7, 8)
 end
 
@@ -101,7 +124,7 @@ function update_inputs()
 end
 
 function try_get_trick()
-    local key_len = 4
+    local key_len = 5
     for kl = min(#input_list, key_len), 1, -1 do
         
         local test_key = ""
@@ -116,15 +139,6 @@ function try_get_trick()
     end
     return nil
 end
-
---[[
-function draw_inputs(x,y)
-    for i in all(input_list) do
-        print(i.key, x, y, 6)
-        y += 7
-    end
-end
-]]
 
 function score_str(s)
     return tostr(s, 0x2)
@@ -156,7 +170,7 @@ function add_combo(trick)
     local score = tricks[trick].score
     add(combo, {trick = trick, score = score, duration = 1, final_score = score})
     latest_trick_time = 10
-    skatesnd(12)
+    skatesnd(52)
 end
 function increment_combo()
     combo[#combo].duration += 1/30

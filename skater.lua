@@ -40,7 +40,8 @@ function make_skater()
                     spin = v_add(spin, v_mul(tspins[spindex], (tt * #tspins % 1) * DEG2RAD))
                 end
                 if ct.holdspin then
-                    spin = v_mul(ct.holdspin, DEG2RAD)
+                    --spin = v_mul(ct.holdspin, DEG2RAD)
+                    spin = v_mul(ct.holdspin, min(self.current_trick_t / 8, 0.999) * DEG2RAD)
                 end
                 if spin[1] != 0 then
                     local cyaw = atan2(skate_fwd[1], skate_fwd[3])
@@ -213,7 +214,7 @@ function make_skater()
             self.balance = 0          
             self.in_manual = false  
             end_combo(true)
-            skatesnd(13)
+            skatesnd(53)
         end,
         update = function(self)
             -- fall?
@@ -239,7 +240,7 @@ function make_skater()
                     self.grind_line = nil
                     self:lock_grind(0)
                 end
-                skatesnd(9,8)
+                skatesnd(49,8)
             end
             if self.grind_line == nil and self.current_trick and self.current_trick.is_grind then
                 self.current_trick = nil
@@ -254,7 +255,7 @@ function make_skater()
                     local speed = v_mag(flat_vel)
                     flat_vel = v_mul(v_norm(flat_vel), speed - FRICTION)
                     self.vel = {flat_vel[1], self.vel[2], flat_vel[3]}
-                    skatesnd(8,7)
+                    skatesnd(48,7)
                 else
                     self.vel = {0,self.vel[2],0}
                 end
@@ -290,6 +291,7 @@ function make_skater()
                         else
                             add_combo(self.in_manual)
                             self.current_trick = tricks[self.in_manual]
+                            self.current_trick_t = 0
                         end
                         self:push_balance()
                     end
@@ -305,7 +307,7 @@ function make_skater()
                                 end
                             end
                         end
-                        skatesnd(10)
+                        skatesnd(50)
                     end
                     self.airborne,self.airborne_frames,self.jumped,self.last_ground_cell,self.qp_target = false,0,false,hit_cell,nil
                 end
@@ -391,7 +393,7 @@ function make_skater()
         jump = function(self)
             
             if not self.airborne or (self.airborne_frames < 5 and not self.jumped) then
-                skatesnd(11)
+                skatesnd(51)
                 self.airborne = true
                 self.jumped = true
                 self.vel[2] += mid(self.jump_charge, 6, 10) / 60

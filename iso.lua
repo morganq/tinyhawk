@@ -182,15 +182,6 @@ function render_iso_entities(rendersize, use_skater)
     end
 end
 
---[[
-function draw_v(v, ox, oy, c)
-    local o1 = v2p(v)
-    local o2 = v2p({0,0,0})
-    local dx, dy = o1[1] - o2[1], o1[2] - o2[2]
-    line(ox, oy, ox + dx, oy + dy, c or 8)
-end
-]]
-
 function fix_brights()
     for x, zs in pairs(map) do
         for z, cell in pairs(zs) do
@@ -206,7 +197,6 @@ function fix_brights()
                 end            
             end
             if (cell.tiletype.name == "hblock1") add(cell.ent.brights, 203)
-            --if (cell.tiletype.name == "hblock2") add(cell.ent.brights, 69)
         end
     end    
 end

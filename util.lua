@@ -88,15 +88,19 @@ function pr(x, y)
     return sin(v_dot({x,y,0}, v_mul({12.9898, 78.233,0}, 20.0437))) % 1
 end
 
-function gprint(t, x, y, c, shadow, jitter)
-    local xo, yo = 0,0
+function gprint(t, x, y, c, jitter)
+    local xo, yo, i = 0,0,1
     local tt = jitter and time \ jitter or 0
-    for char in all(t) do
-        yo = pr(x, y + tt) * 1.8
-        if shadow then
-            print(char, x + xo, y + yo + 1, 0)
+    while i <= #t do
+        local char = t[i]
+        if char == "ᶜ" then
+            c = tonum(t[i + 1],0x1)
+            i += 1
+        else
+            yo = pr(x, y + tt) * 1.8
+            x = print(char, x + xo, y + yo, c)
         end
-        x = print(char, x + xo, y + yo, c)
+        i += 1
     end
     return x
 end
@@ -126,7 +130,7 @@ function sprint(t, x, y, c)
 end
 
 function transition()
-    skatesnd(9)
+    skatesnd(49)
     fillps = split"0b0101101001011010.1, 0b1010010110100101.1, 0b1011111010111110.1, 0b1111101011111010.1"
     --fillps = {0b1011111010111110.1, 0b0111110101111101.1, 0b1111101011111010.1, 0b1111010111110101.1}
     --pal(split"1,2,3,5,140,15,7,8,9,10,11,12,140,14,134,0",1)

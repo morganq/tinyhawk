@@ -21,7 +21,7 @@ goals_str = [[1/score 3,000◆/score/.0458
 3/score 30,000◆/score/.4578
 3/score 7,500◆ <= 5-combo/combo/.1144/5
 3/combo both module gaps/gap/module gap 2/module gap 1
-3/ufo chicken the pipe transfer/gap/pipe transfer/ufo chicken
+3/ufo bird the pipe transfer/gap/pipe transfer/ufo bird
 3/score 12,500◆ <= 5-combo/combo/.1907/5
 3/score 75,000◆/score/1.1444
 ]]
@@ -36,20 +36,23 @@ for row in all(split(goals_str,"\n")) do
 end
 
 -- RESET SAVE DATA
-
+--[[
 for i = 0,63 do
     dset(i, 0)
 end
+]]
 
-
-function is_goal_complete(levelnum, index)
-    return dget((levelnum - 1) * 10 + (index-1)) != 0
+function gi(index)
+    return level_index * 10 + index - 11
+end
+function is_goal_complete(index)
+    return dget(gi(index)) != 0
 end
 
 function update_goals()
     for i = 1, #level_goals[level_index] do
         local goal = level_goals[level_index][i]
-        if not is_goal_complete(level_index, i) then
+        if not is_goal_complete(i) then
             complete = false
             if goal.type == "score" then
                 complete = score >= goal.param
@@ -71,12 +74,11 @@ function update_goals()
                 end
             end
             if complete then
-                dset((level_index-1) * 10 + (i - 1), 1)
+                dset(gi(i), 1)
                 goal_complete_timer = 90
                 goal_completed = goal.name
-                skatesnd(15)
+                skatesnd(55)
             end
-
         end
     end
 end
@@ -87,7 +89,7 @@ function draw_goals()
         goal_complete_timer -= 1
         local x1, x2 = 64 - #goal_completed * 2,64 + #goal_completed * 2
         grungeline(x1 - 4, x2, 14, 21, 10)
-        gprint(goal_completed, 64 - #goal_completed * 2, 16, 0, false, 15)
+        gprint(goal_completed, 64 - #goal_completed * 2, 16, 0, 15)
         local t = mid((125 - goal_complete_timer * 2) / 45, 0, 1)
         line(x1 - 3, 17 + pr(x1,0), x1 - 3 + (x2 - x1) * t, 17 + pr(x2,1) * 3 * t, 0)
     end

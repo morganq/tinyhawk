@@ -2,19 +2,20 @@ scroll = {0,0}
 
 function select_init()
     time = 0
-    level_index = 1
+    music(39)
 end
 
 function select_update()
     time += 1
     local oi = level_index
     if btnp(0) then
-        level_index = max(level_index - 1, 1)
+        level_index -= 1
     elseif btnp(1) then
-        level_index = min(level_index + 1, 3)
+        level_index += 1
     end
+    level_index = mid(level_index, 1, 3)
     if level_index != oi or time == 1 then
-        skatesnd(17)
+        skatesnd(57)
         load(level_index)
         presort_cells()
         fix_brights()        
@@ -37,7 +38,7 @@ function draw_goal_list(x, y, t)
     
     local goals = level_goals[level_index]
     for i = 1, min(#goals, t \ 2) do
-        local complete = is_goal_complete(level_index, i)
+        local complete = is_goal_complete(i)
         local xo = gprint(goals[i].name, x, i * 7 + y - 1, complete and 15 or 7)
         if complete then
             line(x + 1, i * 7 + y + 1 + pr(i,0) * 3, x + xo, i * 7 + y + pr(i,1) * 3, 6)
@@ -80,11 +81,12 @@ function select_draw()
     local x = print(t, 0, -20)
     print(t, 65 - x \ 2, 4, 0)
     print(t, 64 - x \ 2, 3, 7)
+    local cc = time \ 10 % 2 == 0 and 7 or 11
     if level_index > 1 then
-        sprint("◀", 8, 6, time \ 10 % 2 == 0 and 7 or 11)
+        sprint("◀", 8, 6, cc)
     end
     if level_index < 3 then
-        sprint("▶", 112, 6, time \ 10 % 2 == 0 and 7 or 11)
+        sprint("▶", 112, 6, cc)
     end    
 
     pal(split(LEVEL_PALETTE),1)  

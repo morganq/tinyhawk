@@ -1,3 +1,8 @@
+CLEVEL = 1
+CLEVELS = "/1,2,3,5,140,15,7,8,9,10,139,12,140,14,134,0/wAREHOUSE/-1.5,2,-5.5:"
+--CLEVELS = "/129,2,3,1,1,12,7,8,9,10,139,12,140,14,5,0/cITY/-7,0,4:"
+--CLEVELS = "/130,2,3,5,133,15,7,8,9,10,139,12,133,14,134,0/sCHOOL/-15,2,16:"
+
 --TODO: model data as strings
 --TODO: tricks as strings
 
@@ -16,7 +21,7 @@ tile_groups = {
     split"rail1,rail2,rail3,rail4,rail6,rail7,stairrail",
     split"qp,barrier2",
     split"taxi1,taxi2,fence,door,cop1,cop2",
-    split"floor1,floor2,floor3,floor4,floor5,floor6,floor7,floor8",
+    split"floor1,floor2,floor3,floor4,floor5,floor6,floor7,floor8,floor9,floor10,floor11",
     split"module",
 }
 edit_tile_group = 1
@@ -69,7 +74,7 @@ function _update()
     end
 
     if symbol == "l" then
-        load(2)
+        load(CLEVEL)
         fix_grinds()
     end
 
@@ -202,9 +207,7 @@ function save()
             end
         end
     end
-    string ..= minx .. "/" .. maxx .. "/" .. minz .. "/" .. maxz .. "129,2,3,1,1,12,7,8,9,10,139,12,140,14,5,0/cITY/-7,0,4:"
-    --string ..= minx .. "/" .. maxx .. "/" .. minz .. "/" .. maxz .. "/130,2,3,5,133,15,7,8,9,10,139,12,133,14,134,0/sCHOOL/-15,2,16:"
-    --string ..= minx .. "/" .. maxx .. "/" .. minz .. "/" .. maxz .. "/1,2,3,5,140,15,7,8,9,10,139,12,140,14,134,0/wAREHOUSE/-1.5,2,-5.5:"
+    string ..= minx .. "/" .. maxx .. "/" .. minz .. "/" .. maxz .. CLEVELS
     for x = minx, maxx do
         for z = minz, maxz do
             local cell = get_cell({x,0,z})

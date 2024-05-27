@@ -1,4 +1,4 @@
-MUSICS = split"0,13"
+MUSICS = split"0,11,24"
 
 function game_init()
     load(level_index)
@@ -49,7 +49,7 @@ function game_init()
     current_combo_score = 0
     last_combo_score = 0    
     timeup = false
-    music(rnd(MUSICS), nil, 14)
+    music(rnd(MUSICS))
 end
 
 
@@ -59,7 +59,9 @@ function game_update()
         if btnp(4) then game_mode = nil end        
         return
     end
-    gametime = min(gametime + 1, 32000)
+    if gametime < 3599 or #combo == 0 then
+        gametime = min(gametime + 1, 32000)
+    end
     
 
     local dir = 0
@@ -103,7 +105,7 @@ function game_update()
         --scroll[2] = mid(scroll[2], -232, 24)
 
         if gametime > 3300 and gametime % 30 == 0 then
-            skatesnd(gametime == 3600 and 16 or 14)
+            skatesnd(gametime == 3600 and 54 or 56)
         end
 
     else
