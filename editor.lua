@@ -1,6 +1,6 @@
-CLEVEL = 1
-CLEVELS = "/1,2,3,5,140,15,7,8,9,10,139,12,140,14,134,0/wAREHOUSE/-1.5,2,-5.5:"
---CLEVELS = "/129,2,3,1,1,12,7,8,9,10,139,12,140,14,5,0/cITY/-7,0,4:"
+CLEVEL = 2
+--CLEVELS = "/1,2,3,5,140,15,7,8,9,10,139,12,140,14,134,0/wAREHOUSE/-1.5,2,-5.5:"
+CLEVELS = "/129,2,3,1,1,12,7,8,9,10,139,12,140,14,5,0/cITY/-7,0,4:"
 --CLEVELS = "/130,2,3,5,133,15,7,8,9,10,139,12,133,14,134,0/sCHOOL/-15,2,16:"
 
 --TODO: model data as strings
@@ -154,7 +154,7 @@ function _draw()
     for ent in all(all_entities) do
         if ent.cell and ent.cell.special then
             local p = v2p(ent.center)
-            print(ent.cell.special, p[1] - 1, p[2] - 3, 2, 10)
+            --print(ent.cell.special, p[1] - 1, p[2] - 3, 2, 10)
         end
     end
 
@@ -187,7 +187,7 @@ function _draw()
     --print(stat(0), 1, 100, 11)
     --draw_inputs(2, 2)
     --draw_combo()
-    print(tile_special, 120, 2, 10)
+    --print(tile_special, 120, 2, 10)
     --pal(split"1,2,3,5,140,15,7,8,9,10,139,12,140,14,134,0",1)
     --pal(split"129,2,3,1,1,12,7,8,9,10,11,12,140,14,5,0",1)
     pal(split(LEVEL_PALETTE),1)
