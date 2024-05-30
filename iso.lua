@@ -157,10 +157,10 @@ function render_iso_entities(rendersize, use_skater)
     for x = x1, x2 do
         for z = z1, z2 do
             if z % 2 == 0 and (x < minx or x > maxx or z < minz - 1 or z >= maxz) then
-                spr(112, x * -8 + z * 8 + 64, x * 4 + z * 4 + 68, 2, 1)
+                spr(160, x * -8 + z * 8 + 64, x * 4 + z * 4 + 68, 2, 1)
             end
         end
-    end
+    end 
 
     -- can opt with deli if needed
     if use_skater then
